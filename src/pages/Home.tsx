@@ -32,7 +32,9 @@ export function Home() {
     <div class="page home-page">
       <header class="header">
         <div class="header-content">
-          <a href="/" class="logo">cloistr</a>
+          <a href="/" class="logo">
+            <img src="/cloistr-logo.svg" alt="Cloistr" class="logo-img" />
+          </a>
           <nav class="nav">
             <Show when={auth.state().pubkey}>
               <a href="/dashboard" class="nav-link">Dashboard</a>
@@ -45,16 +47,22 @@ export function Home() {
       <main class="main">
         <section class="hero">
           <h1 class="hero-title">
-            Your Identity on Nostr
+            Welcome to Cloistr
           </h1>
           <p class="hero-subtitle">
-            Get your @cloistr.xyz address. One address for NIP-05 verification, Lightning payments, and more.
+            Your sovereign identity on Nostr. Own your name, control your data, receive payments — all with one address.
           </p>
         </section>
 
+        <Show when={auth.state().pubkey}>
+          <section class="welcome-back">
+            <p>Welcome back! <a href="/dashboard">Go to your dashboard</a> to manage your address.</p>
+          </section>
+        </Show>
+
         <section class="signup-section">
           <div class="signup-card">
-            <h2>Claim Your Address</h2>
+            <h2>Get Your @cloistr.xyz Address</h2>
             <UsernameInput onSelect={handleUsernameSelect} />
 
             <Show when={selectedUsername() && isAvailable()}>
@@ -116,7 +124,7 @@ export function Home() {
       </main>
 
       <footer class="footer">
-        <p>Built with Nostr by <a href="https://coldforge.xyz">Coldforge</a></p>
+        <p>An identity service from <a href="https://cloistr.xyz">Cloistr</a> — Freedom as a Service</p>
       </footer>
 
       {/* Login prompt modal */}
