@@ -3,7 +3,7 @@ import { useNavigate } from '@solidjs/router';
 import { useAuth } from '../lib/nostr';
 import { LoginButton, UsernameInput } from '../components';
 
-export function Home() {
+export function Register() {
   const auth = useAuth();
   const navigate = useNavigate();
   const [selectedUsername, setSelectedUsername] = createSignal<string | null>(null);
