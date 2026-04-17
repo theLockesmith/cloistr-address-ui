@@ -1,4 +1,4 @@
-# CLAUDE.md - cloistr-address-ui
+# CLAUDE.md - cloistr-me-ui
 
 **Public signup and management UI for @cloistr.xyz addresses**
 
@@ -58,7 +58,7 @@ src/
 
 ## API Integration
 
-Backend: `cloistr-address` service at `/api/v1/*`
+Backend: `cloistr-me` service at `/api/v1/*`
 
 ### Public Endpoints
 - `GET /api/v1/addresses/check/:username` - Availability
@@ -87,11 +87,11 @@ npm run build
 
 ## Deployment
 
-- Docker image: `registry.coldforge.xyz/cloistr-address-ui`
+- Docker image: `registry.aegis-hq.xyz/coldforge/cloistr-me-ui`
 - Namespace: `cloistr`
 - Routing: cloistr-tunnel routes `/*` to this UI, `/api/*` to backend
 
 ## Related
 
-- Backend: cloistr-address (`~/Development/cloistr-address/`)
+- Backend: cloistr-me (`~/Development/cloistr-me/`)
 - Auth patterns: cloistr-discovery-ui (`~/Development/cloistr-discovery-ui/`)
