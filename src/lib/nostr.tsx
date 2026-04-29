@@ -1,42 +1,33 @@
-import { createContext, useContext, useState, useCallback, useMemo, type ReactNode } from 'react'
-import { SimplePool, type Event, type EventTemplate, generateSecretKey } from 'nostr-tools'
-import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
+/**
+ * Auth module - wraps @cloistr/collab-common auth
+ * Provides NIP-07 and NIP-46 authentication with circuit breaker,
+ * adaptive rate limiting, and session persistence.
+ */
+
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import {
+  AuthProvider as CollabAuthProvider,
+  useNostrAuth,
+  type SignerInterface,
+} from '@cloistr/collab-common/auth'
 import type { AuthState, Signer, UnsignedEvent, SignedEvent } from './types'
 
-// NIP-07 adapter to match Signer interface
-class Nip07Signer implements Signer {
-  async getPublicKey(): Promise<string> {
-    const nostr = (window as { nostr?: { getPublicKey(): Promise<string>; signEvent(event: EventTemplate): Promise<Event> } }).nostr
-    if (!nostr) throw new Error('No Nostr extension found')
-    return nostr.getPublicKey()
-  }
-
-  async signEvent(event: UnsignedEvent): Promise<SignedEvent> {
-    const nostr = (window as { nostr?: { getPublicKey(): Promise<string>; signEvent(event: EventTemplate): Promise<Event> } }).nostr
-    if (!nostr) throw new Error('No Nostr extension found')
-    const signed = await nostr.signEvent(event as EventTemplate)
-    return signed as unknown as SignedEvent
-  }
-}
-
-// NIP-46 adapter
-class Nip46SignerAdapter implements Signer {
-  private bunker: BunkerSigner
-
-  constructor(bunker: BunkerSigner) {
-    this.bunker = bunker
-  }
-
-  async getPublicKey(): Promise<string> {
-    return this.bunker.getPublicKey()
-  }
-
-  async signEvent(event: UnsignedEvent): Promise<SignedEvent> {
-    return this.bunker.signEvent(event as EventTemplate) as Promise<SignedEvent>
+// Adapter to convert collab-common SignerInterface to our Signer type
+function adaptSigner(signer: SignerInterface | null): Signer | null {
+  if (!signer) return null
+  return {
+    getPublicKey: () => signer.getPublicKey(),
+    signEvent: async (event: UnsignedEvent) => {
+      // Add pubkey to the event before signing
+      const pubkey = await signer.getPublicKey()
+      const fullEvent = { ...event, pubkey }
+      const signed = await signer.signEvent(fullEvent)
+      return signed as unknown as SignedEvent
+    },
   }
 }
 
-// Auth context type
+// Auth context type - maintains API compatibility
 interface AuthContextType {
   state: AuthState
   signer: Signer | null
@@ -58,107 +49,63 @@ export function useAuth() {
   return context
 }
 
-// Singleton pool and bunker signer (outside component to persist across renders)
-const pool = new SimplePool()
-let bunkerSigner: BunkerSigner | null = null
-
 interface AuthProviderProps {
   children: ReactNode
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [state, setState] = useState<AuthState>({
-    pubkey: null,
-    method: null,
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [currentSigner, setCurrentSigner] = useState<Signer | null>(null)
+// Inner component that creates the auth context value
+function AuthProviderInner({ children }: AuthProviderProps) {
+  const collabAuth = useNostrAuth()
 
-  const hasNip07 = useCallback((): boolean => {
+  // Map collab-common state to our state format
+  const state: AuthState = useMemo(() => ({
+    pubkey: collabAuth.authState.pubkey,
+    method: collabAuth.authState.method as 'nip07' | 'nip46' | null,
+  }), [collabAuth.authState.pubkey, collabAuth.authState.method])
+
+  const signer = useMemo(() => adaptSigner(collabAuth.signer), [collabAuth.signer])
+
+  const hasNip07 = (): boolean => {
     return typeof window !== 'undefined' && !!(window as { nostr?: unknown }).nostr
-  }, [])
+  }
 
-  // Login with NIP-07
-  const login = useCallback(async (): Promise<void> => {
-    if (!hasNip07()) {
-      throw new Error('No Nostr extension found. Please install nos2x, Alby, or similar.')
-    }
+  const login = async (): Promise<void> => {
+    await collabAuth.connectNip07()
+  }
 
-    setIsLoading(true)
-    try {
-      const signer = new Nip07Signer()
-      const pubkey = await signer.getPublicKey()
+  const loginNip46 = async (bunkerInput: string): Promise<void> => {
+    await collabAuth.connectNip46({ bunkerUrl: bunkerInput })
+  }
 
-      setCurrentSigner(signer)
-      setState({
-        pubkey,
-        method: 'nip07',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [hasNip07])
+  const logout = (): void => {
+    collabAuth.disconnect()
+  }
 
-  // Login with NIP-46 (remote signer)
-  const loginNip46 = useCallback(async (bunkerInput: string): Promise<void> => {
-    setIsLoading(true)
-    try {
-      const bp = await parseBunkerInput(bunkerInput)
-      if (!bp) {
-        throw new Error('Invalid bunker URL or NIP-05 identifier')
-      }
-
-      const clientSecretKey = generateSecretKey()
-      bunkerSigner = BunkerSigner.fromBunker(clientSecretKey, bp, { pool })
-
-      await bunkerSigner.connect()
-      const pubkey = await bunkerSigner.getPublicKey()
-
-      const signer = new Nip46SignerAdapter(bunkerSigner)
-      setCurrentSigner(signer)
-
-      setState({
-        pubkey,
-        method: 'nip46',
-      })
-    } catch (err) {
-      if (bunkerSigner) {
-        await bunkerSigner.close().catch(() => {})
-        bunkerSigner = null
-      }
-      setCurrentSigner(null)
-      throw err
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  const logout = useCallback(async (): Promise<void> => {
-    if (bunkerSigner) {
-      await bunkerSigner.close().catch(() => {})
-      bunkerSigner = null
-    }
-    setCurrentSigner(null)
-    setState({
-      pubkey: null,
-      method: null,
-    })
-  }, [])
-
-  const value = useMemo(() => ({
+  const value = useMemo<AuthContextType>(() => ({
     state,
-    signer: currentSigner,
+    signer,
     login,
     loginNip46,
     logout,
-    isLoading,
+    isLoading: collabAuth.authState.isConnecting ?? false,
     hasNip07,
-  }), [state, currentSigner, login, loginNip46, logout, isLoading, hasNip07])
+  }), [state, signer, collabAuth.authState.isConnecting])
 
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
+  )
+}
+
+// Main AuthProvider - wraps with collab-common's AuthProvider
+export function AuthProvider({ children }: AuthProviderProps) {
+  return (
+    <CollabAuthProvider>
+      <AuthProviderInner>
+        {children}
+      </AuthProviderInner>
+    </CollabAuthProvider>
   )
 }
 
