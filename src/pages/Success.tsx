@@ -1,33 +1,33 @@
-import { useParams } from '@solidjs/router';
-import { LoginButton } from '../components';
+import { useParams } from 'react-router-dom'
+import { LoginButton } from '../components'
 
 export function Success() {
-  const params = useParams<{ username: string }>();
+  const params = useParams<{ username: string }>()
 
   return (
-    <div class="page success-page">
-      <header class="header">
-        <div class="header-content">
-          <a href="/" class="logo">cloistr</a>
-          <nav class="nav">
-            <a href="/dashboard" class="nav-link">Dashboard</a>
+    <div className="page success-page">
+      <header className="header">
+        <div className="header-content">
+          <a href="/" className="logo">cloistr</a>
+          <nav className="nav">
+            <a href="/dashboard" className="nav-link">Dashboard</a>
             <LoginButton />
           </nav>
         </div>
       </header>
 
-      <main class="main">
-        <div class="success-card">
-          <div class="success-icon">&#10003;</div>
+      <main className="main">
+        <div className="success-card">
+          <div className="success-icon">&#10003;</div>
           <h1>Congratulations!</h1>
-          <p class="success-message">
+          <p className="success-message">
             You are now the proud owner of
           </p>
-          <p class="address-display">
+          <p className="address-display">
             {params.username}@cloistr.xyz
           </p>
 
-          <div class="success-features">
+          <div className="success-features">
             <h3>What's Next?</h3>
             <ul>
               <li>
@@ -42,24 +42,24 @@ export function Success() {
             </ul>
           </div>
 
-          <div class="success-actions">
-            <a href="/dashboard" class="btn btn-primary">
+          <div className="success-actions">
+            <a href="/dashboard" className="btn btn-primary">
               Configure Lightning
             </a>
-            <a href="/" class="btn btn-secondary">
+            <a href="/" className="btn btn-secondary">
               Back to Home
             </a>
           </div>
 
-          <div class="nip05-instructions">
+          <div className="nip05-instructions">
             <h4>How to verify in clients:</h4>
             <p>
               In your Nostr client profile settings, set your NIP-05 identifier to:
             </p>
-            <code class="nip05-code">{params.username}@cloistr.xyz</code>
+            <code className="nip05-code">{params.username}@cloistr.xyz</code>
           </div>
         </div>
       </main>
     </div>
-  );
+  )
 }

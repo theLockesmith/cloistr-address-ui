@@ -1,146 +1,143 @@
-import { createSignal, Show } from 'solid-js';
+import { useState } from 'react'
 
 interface CreditBalanceProps {
-  balance: number;
-  onWithdraw: (amount: number, address: string) => Promise<void>;
+  balance: number
+  onWithdraw: (amount: number, address: string) => Promise<void>
 }
 
-export function CreditBalance(props: CreditBalanceProps) {
-  const [showWithdraw, setShowWithdraw] = createSignal(false);
-  const [amount, setAmount] = createSignal('');
-  const [lightningAddress, setLightningAddress] = createSignal('');
-  const [withdrawing, setWithdrawing] = createSignal(false);
-  const [error, setError] = createSignal<string | null>(null);
-  const [success, setSuccess] = createSignal<string | null>(null);
+export function CreditBalance({ balance, onWithdraw }: CreditBalanceProps) {
+  const [showWithdraw, setShowWithdraw] = useState(false)
+  const [amount, setAmount] = useState('')
+  const [lightningAddress, setLightningAddress] = useState('')
+  const [withdrawing, setWithdrawing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const isValidLightningAddress = (addr: string) => {
-    return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(addr);
-  };
+    return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(addr)
+  }
 
   const handleWithdraw = async () => {
-    setError(null);
-    setSuccess(null);
+    setError(null)
+    setSuccess(null)
 
-    const amountSats = parseInt(amount(), 10);
+    const amountSats = parseInt(amount, 10)
     if (isNaN(amountSats) || amountSats <= 0) {
-      setError('Please enter a valid amount');
-      return;
+      setError('Please enter a valid amount')
+      return
     }
 
-    if (amountSats > props.balance) {
-      setError('Amount exceeds available balance');
-      return;
+    if (amountSats > balance) {
+      setError('Amount exceeds available balance')
+      return
     }
 
-    if (!lightningAddress().trim()) {
-      setError('Please enter a Lightning Address');
-      return;
+    if (!lightningAddress.trim()) {
+      setError('Please enter a Lightning Address')
+      return
     }
 
-    if (!isValidLightningAddress(lightningAddress().trim())) {
-      setError('Invalid Lightning Address format');
-      return;
+    if (!isValidLightningAddress(lightningAddress.trim())) {
+      setError('Invalid Lightning Address format')
+      return
     }
 
-    setWithdrawing(true);
+    setWithdrawing(true)
     try {
-      await props.onWithdraw(amountSats, lightningAddress().trim());
-      setSuccess(`Withdrawal of ${amountSats.toLocaleString()} sats initiated!`);
-      setAmount('');
-      setLightningAddress('');
-      setShowWithdraw(false);
+      await onWithdraw(amountSats, lightningAddress.trim())
+      setSuccess(`Withdrawal of ${amountSats.toLocaleString()} sats initiated!`)
+      setAmount('')
+      setLightningAddress('')
+      setShowWithdraw(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Withdrawal failed');
+      setError(err instanceof Error ? err.message : 'Withdrawal failed')
     } finally {
-      setWithdrawing(false);
+      setWithdrawing(false)
     }
-  };
+  }
 
   const setMaxAmount = () => {
-    setAmount(props.balance.toString());
-  };
+    setAmount(balance.toString())
+  }
 
   return (
-    <div class="credit-balance">
-      <div class="balance-display">
-        <span class="balance-label">Credit Balance</span>
-        <span class="balance-amount">
-          {props.balance.toLocaleString()} <span class="balance-unit">sats</span>
+    <div className="credit-balance">
+      <div className="balance-display">
+        <span className="balance-label">Credit Balance</span>
+        <span className="balance-amount">
+          {balance.toLocaleString()} <span className="balance-unit">sats</span>
         </span>
       </div>
 
-      <p class="balance-description">
+      <p className="balance-description">
         Credits are earned when a username you're purchasing gets claimed by someone else before your payment completes.
         You can withdraw credits to any Lightning Address.
       </p>
 
-      <Show when={props.balance > 0}>
-        <Show
-          when={showWithdraw()}
-          fallback={
-            <button class="btn btn-secondary" onClick={() => setShowWithdraw(true)}>
-              Withdraw Credits
-            </button>
-          }
-        >
-          <div class="withdraw-form">
-            <div class="form-group">
-              <label class="input-label">Amount (sats)</label>
-              <div class="amount-input-wrapper">
+      {balance > 0 && (
+        showWithdraw ? (
+          <div className="withdraw-form">
+            <div className="form-group">
+              <label className="input-label">Amount (sats)</label>
+              <div className="amount-input-wrapper">
                 <input
                   type="number"
-                  class="config-input"
+                  className="config-input"
                   placeholder="Amount in sats"
-                  value={amount()}
-                  onInput={(e) => setAmount(e.currentTarget.value)}
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
                   min="1"
-                  max={props.balance}
+                  max={balance}
                 />
-                <button class="btn-max" onClick={setMaxAmount}>Max</button>
+                <button className="btn-max" onClick={setMaxAmount}>Max</button>
               </div>
             </div>
 
-            <div class="form-group">
-              <label class="input-label">Lightning Address</label>
+            <div className="form-group">
+              <label className="input-label">Lightning Address</label>
               <input
                 type="text"
-                class="config-input"
+                className="config-input"
                 placeholder="you@getalby.com"
-                value={lightningAddress()}
-                onInput={(e) => setLightningAddress(e.currentTarget.value)}
+                value={lightningAddress}
+                onChange={(e) => setLightningAddress(e.target.value)}
               />
             </div>
 
-            <Show when={error()}>
-              <div class="error-message">{error()}</div>
-            </Show>
+            {error && (
+              <div className="error-message">{error}</div>
+            )}
 
-            <div class="form-actions">
+            <div className="form-actions">
               <button
-                class="btn btn-secondary"
+                className="btn btn-secondary"
                 onClick={() => {
-                  setShowWithdraw(false);
-                  setError(null);
+                  setShowWithdraw(false)
+                  setError(null)
                 }}
-                disabled={withdrawing()}
+                disabled={withdrawing}
               >
                 Cancel
               </button>
               <button
-                class="btn btn-primary"
+                className="btn btn-primary"
                 onClick={handleWithdraw}
-                disabled={withdrawing()}
+                disabled={withdrawing}
               >
-                {withdrawing() ? 'Withdrawing...' : 'Withdraw'}
+                {withdrawing ? 'Withdrawing...' : 'Withdraw'}
               </button>
             </div>
           </div>
-        </Show>
-      </Show>
+        ) : (
+          <button className="btn btn-secondary" onClick={() => setShowWithdraw(true)}>
+            Withdraw Credits
+          </button>
+        )
+      )}
 
-      <Show when={success()}>
-        <div class="success-message">{success()}</div>
-      </Show>
+      {success && (
+        <div className="success-message">{success}</div>
+      )}
     </div>
-  );
+  )
 }

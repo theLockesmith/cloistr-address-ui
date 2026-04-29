@@ -1,129 +1,129 @@
-import { createSignal, Show } from 'solid-js';
-import type { LightningConfig as LightningConfigType } from '../lib/types';
+import { useState } from 'react'
+import type { LightningConfig as LightningConfigType } from '../lib/types'
 
 interface LightningConfigProps {
-  config: LightningConfigType | undefined;
-  onSave: (config: Partial<LightningConfigType>) => Promise<void>;
+  config: LightningConfigType | undefined
+  onSave: (config: Partial<LightningConfigType>) => Promise<void>
 }
 
-export function LightningConfig(props: LightningConfigProps) {
-  const [mode, setMode] = createSignal<'disabled' | 'proxy'>(props.config?.mode === 'proxy' ? 'proxy' : 'disabled');
-  const [proxyAddress, setProxyAddress] = createSignal(props.config?.proxy_address || '');
-  const [saving, setSaving] = createSignal(false);
-  const [error, setError] = createSignal<string | null>(null);
-  const [success, setSuccess] = createSignal(false);
+export function LightningConfig({ config, onSave }: LightningConfigProps) {
+  const [mode, setMode] = useState<'disabled' | 'proxy'>(config?.mode === 'proxy' ? 'proxy' : 'disabled')
+  const [proxyAddress, setProxyAddress] = useState(config?.proxy_address || '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
 
   // Validate Lightning Address format
   const isValidLightningAddress = (addr: string) => {
-    return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(addr);
-  };
+    return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(addr)
+  }
 
   const handleSave = async () => {
-    setError(null);
-    setSuccess(false);
+    setError(null)
+    setSuccess(false)
 
-    if (mode() === 'proxy' && !proxyAddress().trim()) {
-      setError('Please enter a Lightning Address');
-      return;
+    if (mode === 'proxy' && !proxyAddress.trim()) {
+      setError('Please enter a Lightning Address')
+      return
     }
 
-    if (mode() === 'proxy' && !isValidLightningAddress(proxyAddress().trim())) {
-      setError('Invalid Lightning Address format (e.g., name@wallet.com)');
-      return;
+    if (mode === 'proxy' && !isValidLightningAddress(proxyAddress.trim())) {
+      setError('Invalid Lightning Address format (e.g., name@wallet.com)')
+      return
     }
 
-    setSaving(true);
+    setSaving(true)
     try {
-      await props.onSave({
-        mode: mode(),
-        proxy_address: mode() === 'proxy' ? proxyAddress().trim() : undefined,
-      });
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      await onSave({
+        mode: mode,
+        proxy_address: mode === 'proxy' ? proxyAddress.trim() : undefined,
+      })
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      setError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const hasChanges = () => {
-    const currentMode = props.config?.mode === 'proxy' ? 'proxy' : 'disabled';
-    const currentAddr = props.config?.proxy_address || '';
-    return mode() !== currentMode || proxyAddress() !== currentAddr;
-  };
+    const currentMode = config?.mode === 'proxy' ? 'proxy' : 'disabled'
+    const currentAddr = config?.proxy_address || ''
+    return mode !== currentMode || proxyAddress !== currentAddr
+  }
 
   return (
-    <div class="lightning-config">
+    <div className="lightning-config">
       <h3>Lightning Address Settings</h3>
-      <p class="config-description">
+      <p className="config-description">
         Configure how payments to your @cloistr.xyz Lightning Address are handled.
       </p>
 
-      <div class="config-options">
-        <label class="config-option">
+      <div className="config-options">
+        <label className="config-option">
           <input
             type="radio"
             name="lightning-mode"
             value="disabled"
-            checked={mode() === 'disabled'}
+            checked={mode === 'disabled'}
             onChange={() => setMode('disabled')}
           />
-          <div class="option-content">
-            <span class="option-title">Disabled</span>
-            <span class="option-desc">Lightning Address not active</span>
+          <div className="option-content">
+            <span className="option-title">Disabled</span>
+            <span className="option-desc">Lightning Address not active</span>
           </div>
         </label>
 
-        <label class="config-option">
+        <label className="config-option">
           <input
             type="radio"
             name="lightning-mode"
             value="proxy"
-            checked={mode() === 'proxy'}
+            checked={mode === 'proxy'}
             onChange={() => setMode('proxy')}
           />
-          <div class="option-content">
-            <span class="option-title">Proxy to External Address</span>
-            <span class="option-desc">Forward payments to another Lightning Address</span>
+          <div className="option-content">
+            <span className="option-title">Proxy to External Address</span>
+            <span className="option-desc">Forward payments to another Lightning Address</span>
           </div>
         </label>
       </div>
 
-      <Show when={mode() === 'proxy'}>
-        <div class="proxy-config">
-          <label class="input-label">
+      {mode === 'proxy' && (
+        <div className="proxy-config">
+          <label className="input-label">
             Forward payments to:
           </label>
           <input
             type="text"
-            class="config-input"
+            className="config-input"
             placeholder="you@getalby.com"
-            value={proxyAddress()}
-            onInput={(e) => setProxyAddress(e.currentTarget.value)}
+            value={proxyAddress}
+            onChange={(e) => setProxyAddress(e.target.value)}
           />
-          <p class="input-hint">
+          <p className="input-hint">
             Payments to your @cloistr.xyz address will be forwarded to this Lightning Address.
             You receive payments directly - we never hold your funds.
           </p>
         </div>
-      </Show>
+      )}
 
-      <Show when={error()}>
-        <div class="error-message">{error()}</div>
-      </Show>
+      {error && (
+        <div className="error-message">{error}</div>
+      )}
 
-      <Show when={success()}>
-        <div class="success-message">Settings saved successfully!</div>
-      </Show>
+      {success && (
+        <div className="success-message">Settings saved successfully!</div>
+      )}
 
       <button
-        class="btn btn-primary"
+        className="btn btn-primary"
         onClick={handleSave}
-        disabled={saving() || !hasChanges()}
+        disabled={saving || !hasChanges()}
       >
-        {saving() ? 'Saving...' : 'Save Settings'}
+        {saving ? 'Saving...' : 'Save Settings'}
       </button>
     </div>
-  );
+  )
 }

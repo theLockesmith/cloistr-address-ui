@@ -1,24 +1,28 @@
-import { Router, Route } from '@solidjs/router';
-import { AuthContext, createAuthStore } from './lib/nostr';
-import { Welcome, Register, Lookup, Purchase, Success, Dashboard, NotFound } from './pages';
-import './index.css';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ToastProvider } from '@cloistr/ui/components'
+import '@cloistr/ui/styles'
+import { AuthProvider } from './lib/nostr'
+import { Welcome, Register, Lookup, Purchase, Success, Dashboard, NotFound } from './pages'
+import './index.css'
 
 function App() {
-  const authStore = createAuthStore();
-
   return (
-    <AuthContext.Provider value={authStore}>
-      <Router>
-        <Route path="/" component={Welcome} />
-        <Route path="/register" component={Register} />
-        <Route path="/lookup" component={Lookup} />
-        <Route path="/purchase/:username" component={Purchase} />
-        <Route path="/success/:username" component={Success} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="*" component={NotFound} />
-      </Router>
-    </AuthContext.Provider>
-  );
+    <ToastProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Welcome />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/lookup" element={<Lookup />} />
+            <Route path="/purchase/:username" element={<Purchase />} />
+            <Route path="/success/:username" element={<Success />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ToastProvider>
+  )
 }
 
-export default App;
+export default App

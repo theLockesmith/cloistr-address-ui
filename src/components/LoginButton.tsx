@@ -1,174 +1,171 @@
-import { Show, createSignal } from 'solid-js';
-import { useAuth } from '../lib/nostr';
+import { useState } from 'react'
+import { useAuth } from '../lib/nostr'
 
 export function LoginButton() {
-  const auth = useAuth();
-  const [showModal, setShowModal] = createSignal(false);
-  const [loginMethod, setLoginMethod] = createSignal<'select' | 'nip46'>('select');
-  const [bunkerUrl, setBunkerUrl] = createSignal('');
-  const [error, setError] = createSignal<string | null>(null);
+  const auth = useAuth()
+  const [showModal, setShowModal] = useState(false)
+  const [loginMethod, setLoginMethod] = useState<'select' | 'nip46'>('select')
+  const [bunkerUrl, setBunkerUrl] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   const truncatePubkey = (pubkey: string) => {
-    return pubkey.slice(0, 8) + '...' + pubkey.slice(-8);
-  };
+    return pubkey.slice(0, 8) + '...' + pubkey.slice(-8)
+  }
 
   const handleOpenModal = () => {
-    setShowModal(true);
-    setLoginMethod('select');
-    setError(null);
-  };
+    setShowModal(true)
+    setLoginMethod('select')
+    setError(null)
+  }
 
   const handleCloseModal = () => {
-    setShowModal(false);
-    setLoginMethod('select');
-    setBunkerUrl('');
-    setError(null);
-  };
+    setShowModal(false)
+    setLoginMethod('select')
+    setBunkerUrl('')
+    setError(null)
+  }
 
-  const handleBackdropClick = (e: MouseEvent) => {
+  const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
-      handleCloseModal();
+      handleCloseModal()
     }
-  };
+  }
 
   const handleNip07Login = async () => {
-    setError(null);
+    setError(null)
     try {
-      await auth.login();
-      handleCloseModal();
+      await auth.login()
+      handleCloseModal()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Login failed')
     }
-  };
+  }
 
   const handleNip46Login = async () => {
-    setError(null);
-    const input = bunkerUrl().trim();
+    setError(null)
+    const input = bunkerUrl.trim()
     if (!input) {
-      setError('Please enter a bunker URL or NIP-05 identifier');
-      return;
+      setError('Please enter a bunker URL or NIP-05 identifier')
+      return
     }
 
     try {
-      await auth.loginNip46(input);
-      handleCloseModal();
+      await auth.loginNip46(input)
+      handleCloseModal()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connection failed');
+      setError(err instanceof Error ? err.message : 'Connection failed')
     }
-  };
+  }
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleNip46Login();
+      handleNip46Login()
     }
-  };
+  }
 
   return (
     <>
-      <Show
-        when={auth.state().pubkey}
-        fallback={
-          <button
-            class="btn btn-login"
-            onClick={handleOpenModal}
-            disabled={auth.isLoading()}
-          >
-            <Show when={auth.isLoading()} fallback="Login">
-              Connecting...
-            </Show>
-          </button>
-        }
-      >
-        <div class="user-info">
-          <span class="user-pubkey">{truncatePubkey(auth.state().pubkey!)}</span>
-          <span class="auth-method">
-            {auth.state().method === 'nip07' ? 'Extension' : 'Remote'}
+      {auth.state.pubkey ? (
+        <div className="user-info">
+          <span className="user-pubkey">{truncatePubkey(auth.state.pubkey)}</span>
+          <span className="auth-method">
+            {auth.state.method === 'nip07' ? 'Extension' : 'Remote'}
           </span>
-          <button class="btn btn-logout" onClick={auth.logout}>
+          <button className="btn btn-logout" onClick={auth.logout}>
             Logout
           </button>
         </div>
-      </Show>
+      ) : (
+        <button
+          className="btn btn-login"
+          onClick={handleOpenModal}
+          disabled={auth.isLoading}
+        >
+          {auth.isLoading ? 'Connecting...' : 'Login'}
+        </button>
+      )}
 
-      <Show when={showModal()}>
-        <div class="modal-overlay" onClick={handleBackdropClick}>
-          <div class="modal login-modal">
-            <div class="modal-header">
+      {showModal && (
+        <div className="modal-overlay" onClick={handleBackdropClick}>
+          <div className="modal login-modal">
+            <div className="modal-header">
               <h2>Login with Nostr</h2>
-              <button class="modal-close" onClick={handleCloseModal}>&times;</button>
+              <button className="modal-close" onClick={handleCloseModal}>&times;</button>
             </div>
 
-            <div class="modal-content">
-              <Show when={loginMethod() === 'select'}>
-                <p class="modal-question">Choose your login method:</p>
-                <div class="login-options">
-                  <button
-                    class="login-option"
-                    onClick={handleNip07Login}
-                    disabled={auth.isLoading() || !auth.hasNip07()}
-                    title={auth.hasNip07() ? 'Login with browser extension' : 'No extension detected'}
-                  >
-                    <span class="option-label">Browser Extension</span>
-                    <span class="option-desc">
-                      {auth.hasNip07() ? 'Use Alby, nos2x, or similar' : 'No extension detected'}
-                    </span>
-                  </button>
-                  <button
-                    class="login-option"
-                    onClick={() => setLoginMethod('nip46')}
-                    disabled={auth.isLoading()}
-                  >
-                    <span class="option-label">Remote Signer</span>
-                    <span class="option-desc">Use nsec.app, Amber, or bunker URL</span>
-                  </button>
-                </div>
-              </Show>
-
-              <Show when={loginMethod() === 'nip46'}>
-                <p class="modal-question">Enter your remote signer:</p>
-                <div class="login-input-group">
-                  <input
-                    type="text"
-                    class="login-input"
-                    placeholder="bunker://... or user@nsec.app"
-                    value={bunkerUrl()}
-                    onInput={(e) => setBunkerUrl(e.currentTarget.value)}
-                    onKeyDown={handleKeyDown}
-                    disabled={auth.isLoading()}
-                    autofocus
-                  />
-                  <div class="login-actions">
+            <div className="modal-content">
+              {loginMethod === 'select' && (
+                <>
+                  <p className="modal-question">Choose your login method:</p>
+                  <div className="login-options">
                     <button
-                      class="btn btn-secondary"
-                      onClick={() => {
-                        setLoginMethod('select');
-                        setBunkerUrl('');
-                        setError(null);
-                      }}
-                      disabled={auth.isLoading()}
+                      className="login-option"
+                      onClick={handleNip07Login}
+                      disabled={auth.isLoading || !auth.hasNip07()}
+                      title={auth.hasNip07() ? 'Login with browser extension' : 'No extension detected'}
                     >
-                      Back
+                      <span className="option-label">Browser Extension</span>
+                      <span className="option-desc">
+                        {auth.hasNip07() ? 'Use Alby, nos2x, or similar' : 'No extension detected'}
+                      </span>
                     </button>
                     <button
-                      class="btn btn-primary"
-                      onClick={handleNip46Login}
-                      disabled={auth.isLoading() || !bunkerUrl().trim()}
+                      className="login-option"
+                      onClick={() => setLoginMethod('nip46')}
+                      disabled={auth.isLoading}
                     >
-                      <Show when={auth.isLoading()} fallback="Connect">
-                        Connecting...
-                      </Show>
+                      <span className="option-label">Remote Signer</span>
+                      <span className="option-desc">Use nsec.app, Amber, or bunker URL</span>
                     </button>
                   </div>
-                </div>
-              </Show>
+                </>
+              )}
 
-              <Show when={error()}>
-                <div class="error-message">{error()}</div>
-              </Show>
+              {loginMethod === 'nip46' && (
+                <>
+                  <p className="modal-question">Enter your remote signer:</p>
+                  <div className="login-input-group">
+                    <input
+                      type="text"
+                      className="login-input"
+                      placeholder="bunker://... or user@nsec.app"
+                      value={bunkerUrl}
+                      onChange={(e) => setBunkerUrl(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      disabled={auth.isLoading}
+                      autoFocus
+                    />
+                    <div className="login-actions">
+                      <button
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setLoginMethod('select')
+                          setBunkerUrl('')
+                          setError(null)
+                        }}
+                        disabled={auth.isLoading}
+                      >
+                        Back
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleNip46Login}
+                        disabled={auth.isLoading || !bunkerUrl.trim()}
+                      >
+                        {auth.isLoading ? 'Connecting...' : 'Connect'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {error && (
+                <div className="error-message">{error}</div>
+              )}
             </div>
           </div>
         </div>
-      </Show>
+      )}
     </>
-  );
+  )
 }
