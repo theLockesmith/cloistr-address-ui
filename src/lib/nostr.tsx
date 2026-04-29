@@ -3,26 +3,19 @@ import { SimplePool, type Event, type EventTemplate, generateSecretKey } from 'n
 import { BunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import type { AuthState, Signer, UnsignedEvent, SignedEvent } from './types'
 
-// NIP-07 window.nostr interface
-declare global {
-  interface Window {
-    nostr?: {
-      getPublicKey(): Promise<string>
-      signEvent(event: object): Promise<Event>
-    }
-  }
-}
-
 // NIP-07 adapter to match Signer interface
 class Nip07Signer implements Signer {
   async getPublicKey(): Promise<string> {
-    if (!window.nostr) throw new Error('No Nostr extension found')
-    return window.nostr.getPublicKey()
+    const nostr = (window as { nostr?: { getPublicKey(): Promise<string>; signEvent(event: EventTemplate): Promise<Event> } }).nostr
+    if (!nostr) throw new Error('No Nostr extension found')
+    return nostr.getPublicKey()
   }
 
   async signEvent(event: UnsignedEvent): Promise<SignedEvent> {
-    if (!window.nostr) throw new Error('No Nostr extension found')
-    return window.nostr.signEvent(event) as Promise<SignedEvent>
+    const nostr = (window as { nostr?: { getPublicKey(): Promise<string>; signEvent(event: EventTemplate): Promise<Event> } }).nostr
+    if (!nostr) throw new Error('No Nostr extension found')
+    const signed = await nostr.signEvent(event as EventTemplate)
+    return signed as unknown as SignedEvent
   }
 }
 
@@ -82,7 +75,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [currentSigner, setCurrentSigner] = useState<Signer | null>(null)
 
   const hasNip07 = useCallback((): boolean => {
-    return typeof window !== 'undefined' && !!window.nostr
+    return typeof window !== 'undefined' && !!(window as { nostr?: unknown }).nostr
   }, [])
 
   // Login with NIP-07
