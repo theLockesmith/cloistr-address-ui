@@ -1,33 +1,71 @@
 /**
- * Auth module - wraps @cloistr/collab-common auth
- * Provides NIP-07 and NIP-46 authentication with circuit breaker,
- * adaptive rate limiting, and session persistence.
+ * Auth module - wraps @cloistr/ui SharedAuthProvider
+ *
+ * Provides NIP-07 and NIP-46 authentication with:
+ * - Cross-subdomain SSO cookies
+ * - Session persistence
+ * - Circuit breaker and rate limiting (via collab-common)
+ *
+ * This module maintains API compatibility with existing components
+ * while using the unified @cloistr/ui auth system.
  */
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { SharedAuthProvider } from '@cloistr/ui/components'
 import {
-  AuthProvider as CollabAuthProvider,
   useNostrAuth,
+  isNip07Supported,
   type SignerInterface,
-} from '@cloistr/collab-common/auth'
-import type { AuthState, Signer, UnsignedEvent, SignedEvent } from './types'
+} from '@cloistr/ui/auth'
+import type { UnsignedEvent as NostrUnsignedEvent, Event as NostrEvent } from 'nostr-tools'
 
-// Adapter to convert collab-common SignerInterface to our Signer type
+// ============================================
+// Types (maintained for API compatibility)
+// ============================================
+
+export interface AuthState {
+  pubkey: string | null
+  method: 'nip07' | 'nip46' | null
+}
+
+export interface UnsignedEvent {
+  kind: number
+  created_at: number
+  tags: string[][]
+  content: string
+  pubkey?: string
+}
+
+export interface Signer {
+  getPublicKey: () => Promise<string>
+  signEvent: (event: UnsignedEvent) => Promise<NostrEvent>
+}
+
+export interface SignedEvent extends NostrEvent {}
+
+// ============================================
+// Adapter functions
+// ============================================
+
+/**
+ * Adapt SignerInterface from collab-common to our Signer type
+ */
 function adaptSigner(signer: SignerInterface | null): Signer | null {
   if (!signer) return null
   return {
     getPublicKey: () => signer.getPublicKey(),
     signEvent: async (event: UnsignedEvent) => {
-      // Add pubkey to the event before signing
       const pubkey = await signer.getPublicKey()
-      const fullEvent = { ...event, pubkey }
-      const signed = await signer.signEvent(fullEvent)
-      return signed as unknown as SignedEvent
+      const fullEvent: NostrUnsignedEvent = { ...event, pubkey }
+      return signer.signEvent(fullEvent)
     },
   }
 }
 
-// Auth context type - maintains API compatibility
+// ============================================
+// Auth Context (API compatible)
+// ============================================
+
 interface AuthContextType {
   state: AuthState
   signer: Signer | null
@@ -38,7 +76,6 @@ interface AuthContextType {
   hasNip07: () => boolean
 }
 
-// Auth context
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function useAuth() {
@@ -49,64 +86,70 @@ export function useAuth() {
   return context
 }
 
+// ============================================
+// Inner Provider
+// ============================================
+
+interface AuthProviderInnerProps {
+  children: ReactNode
+}
+
+function AuthProviderInner({ children }: AuthProviderInnerProps) {
+  const nostrAuth = useNostrAuth()
+
+  // Map to our state format
+  const state: AuthState = useMemo(
+    () => ({
+      pubkey: nostrAuth.authState.pubkey,
+      method: nostrAuth.authState.method as 'nip07' | 'nip46' | null,
+    }),
+    [nostrAuth.authState.pubkey, nostrAuth.authState.method]
+  )
+
+  const signer = useMemo(() => adaptSigner(nostrAuth.signer), [nostrAuth.signer])
+
+  const hasNip07 = (): boolean => isNip07Supported()
+
+  const login = async (): Promise<void> => {
+    await nostrAuth.connectNip07()
+  }
+
+  const loginNip46 = async (bunkerInput: string): Promise<void> => {
+    await nostrAuth.connectNip46({ bunkerUrl: bunkerInput })
+  }
+
+  const logout = (): void => {
+    nostrAuth.disconnect()
+  }
+
+  const value = useMemo<AuthContextType>(
+    () => ({
+      state,
+      signer,
+      login,
+      loginNip46,
+      logout,
+      isLoading: nostrAuth.authState.isConnecting ?? false,
+      hasNip07,
+    }),
+    [state, signer, nostrAuth.authState.isConnecting]
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+// ============================================
+// Main Provider (uses SharedAuthProvider for SSO)
+// ============================================
+
 interface AuthProviderProps {
   children: ReactNode
 }
 
-// Inner component that creates the auth context value
-function AuthProviderInner({ children }: AuthProviderProps) {
-  const collabAuth = useNostrAuth()
-
-  // Map collab-common state to our state format
-  const state: AuthState = useMemo(() => ({
-    pubkey: collabAuth.authState.pubkey,
-    method: collabAuth.authState.method as 'nip07' | 'nip46' | null,
-  }), [collabAuth.authState.pubkey, collabAuth.authState.method])
-
-  const signer = useMemo(() => adaptSigner(collabAuth.signer), [collabAuth.signer])
-
-  const hasNip07 = (): boolean => {
-    return typeof window !== 'undefined' && !!(window as { nostr?: unknown }).nostr
-  }
-
-  const login = async (): Promise<void> => {
-    await collabAuth.connectNip07()
-  }
-
-  const loginNip46 = async (bunkerInput: string): Promise<void> => {
-    await collabAuth.connectNip46({ bunkerUrl: bunkerInput })
-  }
-
-  const logout = (): void => {
-    collabAuth.disconnect()
-  }
-
-  const value = useMemo<AuthContextType>(() => ({
-    state,
-    signer,
-    login,
-    loginNip46,
-    logout,
-    isLoading: collabAuth.authState.isConnecting ?? false,
-    hasNip07,
-  }), [state, signer, collabAuth.authState.isConnecting])
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-// Main AuthProvider - wraps with collab-common's AuthProvider
 export function AuthProvider({ children }: AuthProviderProps) {
   return (
-    <CollabAuthProvider>
-      <AuthProviderInner>
-        {children}
-      </AuthProviderInner>
-    </CollabAuthProvider>
+    <SharedAuthProvider>
+      <AuthProviderInner>{children}</AuthProviderInner>
+    </SharedAuthProvider>
   )
 }
-
-export { AuthContext }
