@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../lib/nostr'
+import { useNostrAuth } from '@cloistr/ui/auth'
+import { LoginPrompt } from '@cloistr/ui/components'
 import { api } from '../lib/api'
-import { LoginButton, PaymentQR } from '../components'
+import { PaymentQR } from '../components'
 import type { PurchaseQuoteResponse, PurchaseInvoiceResponse } from '../lib/types'
 
 export function Purchase() {
   const params = useParams<{ username: string }>()
   const navigate = useNavigate()
-  const auth = useAuth()
+  const { authState, signer } = useNostrAuth()
 
   const [quote, setQuote] = useState<PurchaseQuoteResponse | null>(null)
   const [invoice, setInvoice] = useState<PurchaseInvoiceResponse | null>(null)
@@ -19,7 +20,7 @@ export function Purchase() {
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const loadQuote = async () => {
-    if (!auth.state.pubkey || !auth.signer) {
+    if (!authState.pubkey || !signer) {
       setLoading(false)
       return
     }
@@ -28,7 +29,7 @@ export function Purchase() {
     setError(null)
 
     try {
-      api.setSigner(auth.signer)
+      api.setSigner(signer)
       const response = await api.getPurchaseQuote(params.username!)
       setQuote(response)
 
@@ -43,13 +44,13 @@ export function Purchase() {
   }
 
   const createInvoice = async () => {
-    if (!auth.signer) return
+    if (!signer) return
 
     setLoading(true)
     setError(null)
 
     try {
-      api.setSigner(auth.signer)
+      api.setSigner(signer)
       const response = await api.createPurchaseInvoice(params.username!, useCredits)
       setInvoice(response)
       startPaymentPolling(response.invoice_id)
@@ -91,7 +92,7 @@ export function Purchase() {
     return () => {
       if (pollTimer.current) clearInterval(pollTimer.current)
     }
-  }, [auth.state.pubkey])
+  }, [authState.pubkey])
 
   const effectivePrice = () => {
     if (!quote) return 0
@@ -102,31 +103,21 @@ export function Purchase() {
 
   return (
     <div className="page purchase-page">
-      <header className="header">
-        <div className="header-content">
-          <a href="/" className="logo">cloistr</a>
-          <nav className="nav">
-            <LoginButton />
-          </nav>
-        </div>
-      </header>
+      <div className="purchase-card">
+        <h1>Purchase {params.username}@cloistr.xyz</h1>
 
-      <main className="main">
-        <div className="purchase-card">
-          <h1>Purchase {params.username}@cloistr.xyz</h1>
+        {!authState.pubkey && (
+          <LoginPrompt
+            title="Purchase"
+            callToAction="Please sign in to continue with your purchase."
+          />
+        )}
 
-          {!auth.state.pubkey && (
-            <div className="login-required">
-              <p>Please login to continue with your purchase.</p>
-              <LoginButton />
-            </div>
-          )}
-
-          {auth.state.pubkey && loading && (
+          {authState.pubkey && loading && (
             <div className="loading">Loading...</div>
           )}
 
-          {auth.state.pubkey && error && !invoice && (
+          {authState.pubkey && error && !invoice && (
             <>
               <div className="error-message">{error}</div>
               <button className="btn btn-secondary" onClick={() => navigate('/')}>
@@ -135,7 +126,7 @@ export function Purchase() {
             </>
           )}
 
-          {auth.state.pubkey && quote && !invoice && !error && (
+          {authState.pubkey && quote && !invoice && !error && (
             <div className="quote-details">
               <div className="quote-row">
                 <span>Username</span>
@@ -201,7 +192,6 @@ export function Purchase() {
             </>
           )}
         </div>
-      </main>
     </div>
   )
 }

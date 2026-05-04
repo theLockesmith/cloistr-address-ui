@@ -1,37 +1,21 @@
-import { useAuth } from '../lib/nostr'
-import { LoginButton } from '../components'
+import { useNostrAuth } from '@cloistr/ui/auth'
 
 export function Welcome() {
-  const auth = useAuth()
+  const { authState } = useNostrAuth()
 
   return (
     <div className="page welcome-page">
-      <header className="header">
-        <div className="header-content">
-          <a href="/" className="logo">
-            <img src="/cloistr-logo.svg" alt="Cloistr" className="logo-img" />
-          </a>
-          <nav className="nav">
-            {auth.state.pubkey && (
-              <a href="/dashboard" className="nav-link">Dashboard</a>
-            )}
-            <LoginButton />
-          </nav>
-        </div>
-      </header>
+      <section className="hero">
+        <h1 className="hero-title">
+          Cloistr Me
+        </h1>
+        <p className="hero-subtitle">
+          Your identity on Nostr, simplified.
+        </p>
+      </section>
 
-      <main className="main">
-        <section className="hero">
-          <h1 className="hero-title">
-            Cloistr Me
-          </h1>
-          <p className="hero-subtitle">
-            Your identity on Nostr, simplified.
-          </p>
-        </section>
-
-        <section className="welcome-content">
-          {auth.state.pubkey ? (
+      <section className="welcome-content">
+        {authState.pubkey ? (
             <div className="welcome-back-content">
               <p className="welcome-text">
                 Welcome back! Manage your Cloistr identity from your dashboard.
@@ -90,11 +74,6 @@ export function Welcome() {
             </div>
           </div>
         </section>
-      </main>
-
-      <footer className="footer">
-        <p>Part of the <a href="https://cloistr.xyz">Cloistr</a> ecosystem</p>
-      </footer>
     </div>
   )
 }

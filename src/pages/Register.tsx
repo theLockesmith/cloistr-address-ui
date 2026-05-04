@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../lib/nostr'
-import { LoginButton, UsernameInput } from '../components'
+import { useNostrAuth } from '@cloistr/ui/auth'
+import { LoginModal } from '@cloistr/ui/components'
+import { UsernameInput } from '../components'
 
 export function Register() {
-  const auth = useAuth()
+  const { authState } = useNostrAuth()
   const navigate = useNavigate()
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null)
   const [isAvailable, setIsAvailable] = useState(false)
@@ -20,7 +21,7 @@ export function Register() {
   const handleGetAddress = () => {
     if (!selectedUsername || !isAvailable) return
 
-    if (!auth.state.pubkey) {
+    if (!authState.pubkey) {
       setShowLoginPrompt(true)
       return
     }
@@ -30,22 +31,7 @@ export function Register() {
 
   return (
     <div className="page home-page">
-      <header className="header">
-        <div className="header-content">
-          <a href="/" className="logo">
-            <img src="/cloistr-logo.svg" alt="Cloistr" className="logo-img" />
-          </a>
-          <nav className="nav">
-            {auth.state.pubkey && (
-              <a href="/dashboard" className="nav-link">Dashboard</a>
-            )}
-            <LoginButton />
-          </nav>
-        </div>
-      </header>
-
-      <main className="main">
-        <section className="hero">
+      <section className="hero">
           <h1 className="hero-title">
             Welcome to Cloistr
           </h1>
@@ -54,7 +40,7 @@ export function Register() {
           </p>
         </section>
 
-        {auth.state.pubkey && (
+        {authState.pubkey && (
           <section className="welcome-back">
             <p>Welcome back! <a href="/dashboard">Go to your dashboard</a> to manage your address.</p>
           </section>
@@ -121,29 +107,11 @@ export function Register() {
           </div>
           <p className="pricing-note">One-time payment. Own your address forever.</p>
         </section>
-      </main>
 
-      <footer className="footer">
-        <p>An identity service from <a href="https://cloistr.xyz">Cloistr</a> — Freedom as a Service</p>
-      </footer>
-
-      {/* Login prompt modal */}
-      {showLoginPrompt && (
-        <div className="modal-overlay" onClick={() => setShowLoginPrompt(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Login Required</h2>
-              <button className="modal-close" onClick={() => setShowLoginPrompt(false)}>&times;</button>
-            </div>
-            <div className="modal-content">
-              <p>Please login with Nostr to purchase your address.</p>
-              <div className="modal-actions">
-                <LoginButton />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <LoginModal
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+      />
     </div>
   )
 }

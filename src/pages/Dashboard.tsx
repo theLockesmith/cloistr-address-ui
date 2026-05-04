@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../lib/nostr'
+import { useNostrAuth } from '@cloistr/ui/auth'
+import { LoginPrompt } from '@cloistr/ui/components'
 import { api } from '../lib/api'
-import { LoginButton, LightningConfig, CreditBalance } from '../components'
+import { LightningConfig, CreditBalance } from '../components'
 import type { AddressResponse, CreditBalanceResponse } from '../lib/types'
 
 export function Dashboard() {
-  const auth = useAuth()
+  const { authState, signer } = useNostrAuth()
 
   const [address, setAddress] = useState<AddressResponse | null>(null)
   const [credits, setCredits] = useState<CreditBalanceResponse | null>(null)
@@ -13,7 +14,7 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null)
 
   const loadData = async () => {
-    if (!auth.state.pubkey || !auth.signer) {
+    if (!authState.pubkey || !signer) {
       setLoading(false)
       return
     }
@@ -22,7 +23,7 @@ export function Dashboard() {
     setError(null)
 
     try {
-      api.setSigner(auth.signer)
+      api.setSigner(signer)
 
       const [addressRes, creditsRes] = await Promise.all([
         api.getMyAddress(),
@@ -39,13 +40,15 @@ export function Dashboard() {
   }
 
   const handleSaveLightning = async (config: any) => {
-    api.setSigner(auth.signer!)
+    if (!signer) return
+    api.setSigner(signer)
     const updated = await api.updateLightningConfig(config)
     setAddress((prev) => prev ? { ...prev, lightning: updated } : null)
   }
 
   const handleWithdraw = async (amount: number, lightningAddress: string) => {
-    api.setSigner(auth.signer!)
+    if (!signer) return
+    api.setSigner(signer)
     await api.withdrawCredits(amount, lightningAddress)
     // Reload credits after withdrawal
     const creditsRes = await api.getCredits()
@@ -54,36 +57,25 @@ export function Dashboard() {
 
   useEffect(() => {
     loadData()
-  }, [auth.state.pubkey])
+  }, [authState.pubkey])
 
   return (
     <div className="page dashboard-page">
-      <header className="header">
-        <div className="header-content">
-          <a href="/" className="logo">cloistr</a>
-          <nav className="nav">
-            <a href="/" className="nav-link">Home</a>
-            <LoginButton />
-          </nav>
-        </div>
-      </header>
+      <div className="dashboard-container">
+        <h1>Dashboard</h1>
 
-      <main className="main">
-        <div className="dashboard-container">
-          <h1>Dashboard</h1>
+        {!authState.pubkey && (
+          <LoginPrompt
+            title="Dashboard"
+            callToAction="Please sign in to view your dashboard."
+          />
+        )}
 
-          {!auth.state.pubkey && (
-            <div className="login-required">
-              <p>Please login to view your dashboard.</p>
-              <LoginButton />
-            </div>
-          )}
-
-          {auth.state.pubkey && loading && (
+        {authState.pubkey && loading && (
             <div className="loading">Loading...</div>
           )}
 
-          {auth.state.pubkey && error && (
+          {authState.pubkey && error && (
             <>
               <div className="error-message">{error}</div>
               <button className="btn btn-secondary" onClick={loadData}>
@@ -92,7 +84,7 @@ export function Dashboard() {
             </>
           )}
 
-          {auth.state.pubkey && !loading && !error && (
+          {authState.pubkey && !loading && !error && (
             address ? (
               <div className="dashboard-content">
                 <section className="address-section">
@@ -148,9 +140,8 @@ export function Dashboard() {
                 </a>
               </div>
             )
-          )}
-        </div>
-      </main>
+        )}
+      </div>
     </div>
   )
 }

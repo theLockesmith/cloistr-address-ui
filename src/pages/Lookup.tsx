@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import { useAuth } from '../lib/nostr'
-import { LoginButton } from '../components'
 
 // Known NIP-05 providers to search
 const NIP05_PROVIDERS = [
@@ -113,7 +111,6 @@ async function queryNip05Provider(
 }
 
 export function Lookup() {
-  const auth = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -181,23 +178,7 @@ export function Lookup() {
 
   return (
     <div className="page lookup-page">
-      <header className="header">
-        <div className="header-content">
-          <a href="/" className="logo">
-            <img src="/cloistr-logo.svg" alt="Cloistr" className="logo-img" />
-          </a>
-          <nav className="nav">
-            <a href="/register" className="nav-link">Get Address</a>
-            {auth.state.pubkey && (
-              <a href="/dashboard" className="nav-link">Dashboard</a>
-            )}
-            <LoginButton />
-          </nav>
-        </div>
-      </header>
-
-      <main className="main">
-        <section className="hero">
+      <section className="hero">
           <h1 className="hero-title">Look Up Address</h1>
           <p className="hero-subtitle">
             Search for Nostr identities across multiple providers
@@ -318,11 +299,6 @@ export function Lookup() {
             </div>
           </section>
         )}
-      </main>
-
-      <footer className="footer">
-        <p>Part of the <a href="https://cloistr.xyz">Cloistr</a> ecosystem</p>
-      </footer>
     </div>
   )
 }
