@@ -7,7 +7,7 @@ import './index.css'
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-layout">
-      <Header activeServiceId="me" />
+      <Header activeServiceId="identity" />
       <main className="main-content">
         {children}
       </main>
