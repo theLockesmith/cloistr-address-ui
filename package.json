@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@cloistr/collab-common": "^0.2.1",
-    "@cloistr/ui": "^0.5.1",
+    "@cloistr/ui": "^0.5.3",
     "@types/qrcode": "^1.5.6",
     "nostr-tools": "^2.23.3",
     "qrcode": "^1.5.4",
