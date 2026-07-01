@@ -1,7 +1,7 @@
 {
   "name": "cloistr-me-ui",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,8 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cloistr/auth": "^0.1.0",
     "@cloistr/collab-common": "^0.2.1",
-    "@cloistr/ui": "^0.5.3",
+    "@cloistr/ui": "^0.6.5",
     "@types/qrcode": "^1.5.6",
     "nostr-tools": "^2.23.3",
     "qrcode": "^1.5.4",
