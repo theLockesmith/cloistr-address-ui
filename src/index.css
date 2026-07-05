@@ -1,16 +1,16 @@
 /* cloistr-address-ui styles */
 
 :root {
-  --color-bg: #0f0f14;
-  --color-surface: #1a1a24;
-  --color-border: #2a2a3a;
-  --color-text: #e0e0e8;
-  --color-text-muted: #888898;
-  --color-primary: #7c3aed;
-  --color-primary-hover: #8b5cf6;
-  --color-success: #22c55e;
-  --color-error: #ef4444;
-  --color-warning: #f59e0b;
+  --color-bg: var(--cloistr-bg);
+  --color-surface: var(--cloistr-bg-elevated);
+  --color-border: var(--cloistr-border);
+  --color-text: var(--cloistr-text);
+  --color-text-muted: var(--cloistr-text-muted);
+  --color-primary: var(--cloistr-primary);
+  --color-primary-hover: var(--cloistr-primary-hover);
+  --color-success: var(--cloistr-success);
+  --color-error: var(--cloistr-error);
+  --color-warning: var(--cloistr-warning);
 
   --font-sans: system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, 'Fira Code', monospace;
@@ -410,7 +410,7 @@ body {
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, var(--color-primary), #a855f7);
+  background: linear-gradient(135deg, var(--color-primary), var(--cloistr-primary-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
