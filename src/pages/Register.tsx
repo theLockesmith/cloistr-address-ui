@@ -111,6 +111,7 @@ export function Register() {
       <LoginModal
         isOpen={showLoginPrompt}
         onClose={() => setShowLoginPrompt(false)}
+        signerUrl="https://signer.cloistr.xyz"
       />
     </div>
   )
