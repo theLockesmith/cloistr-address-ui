@@ -9,9 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@cloistr/auth": "^0.1.2",
+    "@cloistr/auth": "^0.2.2",
     "@cloistr/collab-common": "^0.2.6",
-    "@cloistr/ui": "^0.12.8",
+    "@cloistr/ui": "^0.17.0",
     "@types/qrcode": "^1.5.6",
     "nostr-tools": "^2.23.3",
     "qrcode": "^1.5.4",
