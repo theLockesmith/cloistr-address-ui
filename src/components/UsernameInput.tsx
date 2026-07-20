@@ -14,8 +14,9 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
   const [error, setError] = useState<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Username validation regex: 3-32 chars, alphanumeric + underscore
-  const isValidFormat = (name: string) => /^[a-z0-9_]{3,32}$/.test(name.toLowerCase())
+  // TODO: switch to @cloistr/ui isValid once released (mirrors ^[a-z0-9_-]{2,50}$)
+  // Username validation regex: canonical rule — 2-50 chars, lowercase letters/digits/underscore/hyphen
+  const isValidFormat = (name: string) => /^[a-z0-9_-]{2,50}$/.test(name)
 
   const checkAvailability = async (name: string) => {
     if (!isValidFormat(name)) {
@@ -40,7 +41,7 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
   }
 
   const handleInput = (value: string) => {
-    const normalized = value.toLowerCase().replace(/[^a-z0-9_]/g, '')
+    const normalized = value.toLowerCase().replace(/[^a-z0-9_-]/g, '')
     setUsername(normalized)
 
     // Clear previous timer
@@ -53,7 +54,7 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
     setError(null)
 
     // Debounce the API call
-    if (normalized.length >= 3) {
+    if (normalized.length >= 2) {
       debounceTimer.current = setTimeout(() => {
         checkAvailability(normalized)
       }, 300)
@@ -93,13 +94,13 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
           value={username}
           onChange={(e) => handleInput(e.target.value)}
           disabled={disabled}
-          maxLength={32}
+          maxLength={50}
         />
         <span className="domain-suffix">@cloistr.xyz</span>
       </div>
 
-      {username.length > 0 && username.length < 3 && (
-        <p className="input-hint">Username must be at least 3 characters</p>
+      {username.length > 0 && username.length < 2 && (
+        <p className="input-hint">Username must be at least 2 characters</p>
       )}
 
       {checking && (
