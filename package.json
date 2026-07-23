@@ -13,7 +13,7 @@
     "@cloistr/collab-common": "^0.2.7",
     "@cloistr/ui": "^0.20.1",
     "@types/qrcode": "^1.5.6",
-    "nostr-tools": "^2.23.3",
+    "nostr-tools": "^2.24.1",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
