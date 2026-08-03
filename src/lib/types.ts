@@ -29,7 +29,12 @@ export interface AddressResponse {
   pubkey: string;
   active: boolean;
   lightning?: LightningConfig;
-  relays: string[];
+  // Optional: an address with no relay hints omits the field entirely rather
+  // than returning []. Declaring it required made the compiler vouch for a
+  // guarantee the API does not give, so `address.relays.map(...)` in Dashboard
+  // type-checked and then crashed the page at runtime. Keeping it optional is
+  // what makes TypeScript enforce the guard at every call site.
+  relays?: string[];
 }
 
 export interface LightningConfig {
