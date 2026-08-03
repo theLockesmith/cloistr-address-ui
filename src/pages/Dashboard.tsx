@@ -121,15 +121,26 @@ export function Dashboard() {
                   </section>
                 )}
 
-                <section className="relays-section">
-                  <h3>Relay Hints</h3>
-                  <p>These relays are included in your NIP-05 response:</p>
-                  <ul className="relay-list">
-                    {address.relays.map((relay, index) => (
-                      <li key={index} className="relay-item">{relay}</li>
-                    ))}
-                  </ul>
-                </section>
+                {/*
+                  `relays` is optional on the address payload -- an address with
+                  no relay hints comes back without the field at all, not as an
+                  empty array. Calling .map() on it unguarded threw
+                  "TypeError: can't access property 'map', i.relays is undefined"
+                  during render, which React escalates to unmounting the whole
+                  tree: the entire dashboard went blank, not just this section.
+                  Lookup.tsx already guards the same field; this matches it.
+                */}
+                {address.relays && address.relays.length > 0 && (
+                  <section className="relays-section">
+                    <h3>Relay Hints</h3>
+                    <p>These relays are included in your NIP-05 response:</p>
+                    <ul className="relay-list">
+                      {address.relays.map((relay, index) => (
+                        <li key={index} className="relay-item">{relay}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
               </div>
             ) : (
               <div className="no-address">
