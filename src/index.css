@@ -340,6 +340,7 @@ body {
 
 .username-input {
   flex: 1;
+  min-width: 0; /* allow input to shrink below browser UA default in flex context */
   background: none;
   border: none;
   padding: 12px;
