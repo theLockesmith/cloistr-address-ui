@@ -93,8 +93,13 @@ export function Dashboard() {
                     <span className="address-value">
                       {address.username}@{address.domain}
                     </span>
-                    <span className={`address-status ${address.active ? 'active' : 'inactive'}`}>
-                      {address.active ? 'Active' : 'Inactive'}
+                    <span className="address-badges">
+                      <span className={`address-status ${address.active ? 'active' : 'inactive'}`}>
+                        {address.active ? 'Active' : 'Inactive'}
+                      </span>
+                      <span className="address-status address-status--lifetime">
+                        Lifetime
+                      </span>
                     </span>
                   </div>
                   <div className="address-pubkey">
