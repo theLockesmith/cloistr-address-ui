@@ -97,9 +97,17 @@ export function Dashboard() {
                       <span className={`address-status ${address.active ? 'active' : 'inactive'}`}>
                         {address.active ? 'Active' : 'Inactive'}
                       </span>
-                      <span className="address-status address-status--lifetime">
-                        Lifetime
-                      </span>
+                      {/* No lifetime/expiry badge here, deliberately.
+                          One was rendered UNCONDITIONALLY on every address
+                          card, telling every user their address is "Lifetime"
+                          regardless of plan or expiry. AddressResponse carries
+                          no expiry field at all, so the frontend cannot know
+                          this — while the addresses table does have expires_at
+                          and grace_period_ends, which makes the claim actively
+                          wrong for anyone whose address DOES expire. On a paid
+                          product that is a promise we might not keep.
+                          Restore only when the API returns the expiry and the
+                          badge can be rendered from real data. */}
                     </span>
                   </div>
                   <div className="address-pubkey">
