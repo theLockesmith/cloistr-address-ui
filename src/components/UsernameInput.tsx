@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../lib/api'
+import { isValidUsername } from '../lib/validators'
 import type { AvailabilityResponse } from '../lib/types'
 
 interface UsernameInputProps {
@@ -14,12 +15,8 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
   const [error, setError] = useState<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // TODO: switch to @cloistr/ui isValid once released (mirrors ^[a-z0-9_-]{2,50}$)
-  // Username validation regex: canonical rule — 2-50 chars, lowercase letters/digits/underscore/hyphen
-  const isValidFormat = (name: string) => /^[a-z0-9_-]{2,50}$/.test(name)
-
   const checkAvailability = async (name: string) => {
-    if (!isValidFormat(name)) {
+    if (!isValidUsername(name)) {
       setResult(null)
       setError(null)
       return

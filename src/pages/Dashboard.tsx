@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNostrAuth } from '@cloistr/ui/auth'
 import { LoginPrompt } from '@cloistr/ui/components'
 import { api } from '../lib/api'
+import { hasRelays } from '../lib/validators'
 import { LightningConfig, CreditBalance } from '../components'
 import type { AddressResponse, CreditBalanceResponse } from '../lib/types'
 
@@ -141,9 +142,10 @@ export function Dashboard() {
                   "TypeError: can't access property 'map', i.relays is undefined"
                   during render, which React escalates to unmounting the whole
                   tree: the entire dashboard went blank, not just this section.
-                  Lookup.tsx already guards the same field; this matches it.
+                  hasRelays() from validators.ts guards this; Lookup.tsx mirrors
+                  the same check inline.
                 */}
-                {address.relays && address.relays.length > 0 && (
+                {hasRelays(address.relays) && (
                   <section className="relays-section">
                     <h3>Relay Hints</h3>
                     <p>These relays are included in your NIP-05 response:</p>
