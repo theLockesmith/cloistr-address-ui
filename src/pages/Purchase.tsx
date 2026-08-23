@@ -1,10 +1,21 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useNostrAuth } from '@cloistr/ui/auth'
-import { LoginPrompt } from '@cloistr/ui/components'
+import { LoginPrompt, SignerRecovery } from '@cloistr/ui/components'
 import { api } from '../lib/api'
 import { PaymentQR } from '../components'
+import { useVisibilityRetry } from '../hooks/useVisibilityRetry'
 import type { PurchaseQuoteResponse, PurchaseInvoiceResponse } from '../lib/types'
+
+/** True when `err` is a signing error (AuthError subclass). */
+function isSignerError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    typeof (err as Record<string, unknown>).method === 'string' &&
+    ['nip07', 'nip46'].includes((err as Record<string, unknown>).method as string)
+  )
+}
 
 export function Purchase() {
   const params = useParams<{ username: string }>()
@@ -14,19 +25,24 @@ export function Purchase() {
   const [quote, setQuote] = useState<PurchaseQuoteResponse | null>(null)
   const [invoice, setInvoice] = useState<PurchaseInvoiceResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Signer errors: shown via SignerRecovery (session intact, never a login redirect).
+  const [signerError, setSignerError] = useState<unknown>(null)
+  // Non-signing errors: shown as a plain string.
+  const [apiError, setApiError] = useState<string | null>(null)
   const [useCredits, setUseCredits] = useState(true)
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null)
+  const [retrying, setRetrying] = useState(false)
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const loadQuote = async () => {
+  const loadQuote = useCallback(async () => {
     if (!authState.pubkey || !signer) {
       setLoading(false)
       return
     }
 
     setLoading(true)
-    setError(null)
+    setSignerError(null)
+    setApiError(null)
 
     try {
       api.setSigner(signer)
@@ -34,20 +50,31 @@ export function Purchase() {
       setQuote(response)
 
       if (!response.available) {
-        setError(`${params.username}@cloistr.xyz is no longer available`)
+        setApiError(`${params.username}@cloistr.xyz is no longer available`)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load quote')
+      if (isSignerError(err)) {
+        setSignerError(err)
+      } else {
+        setApiError(err instanceof Error ? err.message : 'Failed to load quote')
+      }
     } finally {
       setLoading(false)
+      setRetrying(false)
     }
-  }
+  }, [authState.pubkey, signer, params.username])
+
+  const handleRetryQuote = useCallback(async () => {
+    setRetrying(true)
+    await loadQuote()
+  }, [loadQuote])
 
   const createInvoice = async () => {
     if (!signer) return
 
     setLoading(true)
-    setError(null)
+    setSignerError(null)
+    setApiError(null)
 
     try {
       api.setSigner(signer)
@@ -55,7 +82,11 @@ export function Purchase() {
       setInvoice(response)
       startPaymentPolling(response.invoice_id)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create invoice')
+      if (isSignerError(err)) {
+        setSignerError(err)
+      } else {
+        setApiError(err instanceof Error ? err.message : 'Failed to create invoice')
+      }
     } finally {
       setLoading(false)
     }
@@ -72,7 +103,7 @@ export function Purchase() {
           navigate(`/success/${params.username}`)
         } else if (status.status === 'failed' || status.status === 'expired') {
           if (pollTimer.current) clearInterval(pollTimer.current)
-          setError('Payment failed or expired. Please try again.')
+          setApiError('Payment failed or expired. Please try again.')
           setInvoice(null)
         }
       } catch (err) {
@@ -84,7 +115,7 @@ export function Purchase() {
   const handleExpired = () => {
     if (pollTimer.current) clearInterval(pollTimer.current)
     setInvoice(null)
-    setError('Invoice expired. Click "Pay Now" to create a new one.')
+    setApiError('Invoice expired. Click "Pay Now" to create a new one.')
   }
 
   useEffect(() => {
@@ -93,6 +124,10 @@ export function Purchase() {
       if (pollTimer.current) clearInterval(pollTimer.current)
     }
   }, [authState.pubkey])
+
+  // Part 4 – visibilitychange reconnect.
+  // Enable only while there is a signing error to recover from.
+  useVisibilityRetry(loadQuote, signerError !== null)
 
   const effectivePrice = () => {
     if (!quote) return 0
@@ -117,16 +152,26 @@ export function Purchase() {
             <div className="loading">Loading...</div>
           )}
 
-          {authState.pubkey && error && !invoice && (
+          {/* Signing errors: SignerRecovery — session intact, never a login redirect. */}
+          {authState.pubkey && !loading && signerError && (
+            <SignerRecovery
+              error={signerError}
+              onRetry={handleRetryQuote}
+              retrying={retrying}
+              onGoBack={() => navigate('/')}
+            />
+          )}
+
+          {authState.pubkey && !loading && !signerError && apiError && !invoice && (
             <>
-              <div className="error-message">{error}</div>
+              <div className="error-message">{apiError}</div>
               <button className="btn btn-secondary" onClick={() => navigate('/')}>
                 Back to Home
               </button>
             </>
           )}
 
-          {authState.pubkey && quote && !invoice && !error && (
+          {authState.pubkey && !loading && !signerError && quote && !invoice && !apiError && (
             <div className="quote-details">
               <div className="quote-row">
                 <span>Username</span>
@@ -169,7 +214,7 @@ export function Purchase() {
             </div>
           )}
 
-          {invoice && (
+          {invoice && !signerError && (
             <>
               {effectivePrice() > 0 ? (
                 <>

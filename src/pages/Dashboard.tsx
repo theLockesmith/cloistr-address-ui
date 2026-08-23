@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNostrAuth } from '@cloistr/ui/auth'
-import { LoginPrompt } from '@cloistr/ui/components'
+import { LoginPrompt, SignerRecovery } from '@cloistr/ui/components'
 import { api } from '../lib/api'
 import { hasRelays } from '../lib/validators'
 import { LightningConfig, CreditBalance } from '../components'
+import { useVisibilityRetry } from '../hooks/useVisibilityRetry'
 import type { AddressResponse, CreditBalanceResponse } from '../lib/types'
 
 export function Dashboard() {
@@ -12,16 +13,24 @@ export function Dashboard() {
   const [address, setAddress] = useState<AddressResponse | null>(null)
   const [credits, setCredits] = useState<CreditBalanceResponse | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Signer errors (from NIP-46/NIP-07 signing failures): shown via SignerRecovery.
+  // Keeping the raw error object allows signerFailureMessage() to produce
+  // accurate human-facing copy (relay unreachable vs. denied vs. timed out).
+  const [signerError, setSignerError] = useState<unknown>(null)
+  // Non-signing errors (API HTTP failures, network errors on the fetch itself):
+  // shown as a simple string — these are not signer issues.
+  const [apiError, setApiError] = useState<string | null>(null)
+  const [retrying, setRetrying] = useState(false)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!authState.pubkey || !signer) {
       setLoading(false)
       return
     }
 
     setLoading(true)
-    setError(null)
+    setSignerError(null)
+    setApiError(null)
 
     try {
       api.setSigner(signer)
@@ -34,11 +43,30 @@ export function Dashboard() {
       setAddress(addressRes)
       setCredits(creditsRes)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load data')
+      // Distinguish signing errors (AuthError subclasses have a .method property)
+      // from plain API/network errors. Signing errors go to SignerRecovery; API
+      // errors go to the generic string display. NEITHER path clears the session.
+      const isSignerErr =
+        typeof err === 'object' &&
+        err !== null &&
+        typeof (err as Record<string, unknown>).method === 'string' &&
+        ['nip07', 'nip46'].includes((err as Record<string, unknown>).method as string)
+
+      if (isSignerErr) {
+        setSignerError(err)
+      } else {
+        setApiError(err instanceof Error ? err.message : 'Failed to load data')
+      }
     } finally {
       setLoading(false)
+      setRetrying(false)
     }
-  }
+  }, [authState.pubkey, signer])
+
+  const handleRetry = useCallback(async () => {
+    setRetrying(true)
+    await loadData()
+  }, [loadData])
 
   const handleSaveLightning = async (config: any) => {
     if (!signer) return
@@ -60,6 +88,15 @@ export function Dashboard() {
     loadData()
   }, [authState.pubkey])
 
+  // Part 4 – visibilitychange reconnect.
+  //
+  // @cloistr/auth reconnects the NIP-46 relay when the page becomes visible.
+  // Once that relay reconnect completes, a retry of loadData() will succeed
+  // where it previously hit NO_RELAYS/CONNECTION_FAILED. Enable the retry only
+  // while there is a signing error worth recovering from automatically; disable
+  // for terminal errors (user denied) to avoid hammering the signer.
+  useVisibilityRetry(loadData, signerError !== null)
+
   return (
     <div className="page dashboard-page">
       <div className="dashboard-container">
@@ -76,16 +113,29 @@ export function Dashboard() {
             <div className="loading">Loading...</div>
           )}
 
-          {authState.pubkey && error && (
+          {/* Signing errors: use SignerRecovery so the user sees a recovery
+              screen rather than a generic message, and cannot be confused into
+              thinking they need to re-authenticate. The session is intact. */}
+          {authState.pubkey && !loading && signerError && (
+            <SignerRecovery
+              error={signerError}
+              onRetry={handleRetry}
+              retrying={retrying}
+              onGoBack={() => setSignerError(null)}
+            />
+          )}
+
+          {/* Non-signing API errors: plain message with a retry button. */}
+          {authState.pubkey && !loading && apiError && (
             <>
-              <div className="error-message">{error}</div>
+              <div className="error-message">{apiError}</div>
               <button className="btn btn-secondary" onClick={loadData}>
                 Retry
               </button>
             </>
           )}
 
-          {authState.pubkey && !loading && !error && (
+          {authState.pubkey && !loading && !signerError && !apiError && (
             address ? (
               <div className="dashboard-content">
                 <section className="address-section">
