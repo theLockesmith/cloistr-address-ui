@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isValidLightningAddress } from '../lib/validators'
 
 interface CreditBalanceProps {
   balance: number
@@ -12,10 +13,6 @@ export function CreditBalance({ balance, onWithdraw }: CreditBalanceProps) {
   const [withdrawing, setWithdrawing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-
-  const isValidLightningAddress = (addr: string) => {
-    return /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(addr)
-  }
 
   const handleWithdraw = async () => {
     setError(null)
