@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { api } from '../lib/api'
 import { isValidUsername } from '../lib/validators'
 import type { AvailabilityResponse } from '../lib/types'
+import { formatPrice, hasPrice } from '../lib/pricing'
 
 interface UsernameInputProps {
   onSelect?: (username: string, available: boolean, priceSats?: number) => void
@@ -66,13 +67,6 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
     }
   }, [])
 
-  const formatPrice = (sats: number) => {
-    if (sats >= 1000) {
-      return `${(sats / 1000).toFixed(0)}k sats`
-    }
-    return `${sats} sats`
-  }
-
   const getStatusClass = () => {
     if (checking) return 'checking'
     if (error) return 'error'
@@ -113,7 +107,9 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
           <div className="input-status available">
             <span className="status-icon">&#10003;</span>
             <span className="status-text">Available!</span>
-            {result.price_sats && (
+            {/* hasPrice, not truthiness: 0 is a real price (free names) and
+                `{price && ...}` rendered a bare 0 next to "Available!". */}
+            {hasPrice(result.price_sats) && (
               <span className="price-badge">
                 {formatPrice(result.price_sats)}
                 {result.tier && (

@@ -5,6 +5,7 @@ import { LoginPrompt } from '@cloistr/ui/components'
 import { api } from '../lib/api'
 import { PaymentQR } from '../components'
 import type { PurchaseQuoteResponse, PurchaseInvoiceResponse } from '../lib/types'
+import { formatPrice } from '../lib/pricing'
 
 export function Purchase() {
   const params = useParams<{ username: string }>()
@@ -138,7 +139,7 @@ export function Purchase() {
               </div>
               <div className="quote-row">
                 <span>Base Price</span>
-                <span className="quote-value">{quote.price_sats?.toLocaleString()} sats</span>
+                <span className="quote-value">{formatPrice(quote.price_sats ?? 0)}</span>
               </div>
 
               {(quote.credits || 0) > 0 && (
@@ -156,7 +157,8 @@ export function Purchase() {
 
               <div className="quote-row total">
                 <span>Total</span>
-                <span className="quote-value">{effectivePrice().toLocaleString()} sats</span>
+                {/* "Total 0 sats" reads as a bug; "Free" reads as the offer. */}
+                <span className="quote-value">{formatPrice(effectivePrice())}</span>
               </div>
 
               <button
