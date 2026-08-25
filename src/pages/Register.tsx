@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useNostrAuth } from '@cloistr/ui/auth'
 import { LoginModal } from '@cloistr/ui/components'
 import { UsernameInput } from '../components'
+import { purchaseCtaSuffix } from '../lib/pricing'
 
 export function Register() {
   const { authState } = useNostrAuth()
@@ -57,8 +58,11 @@ export function Register() {
                 onClick={handleGetAddress}
               >
                 Get {selectedUsername}@cloistr.xyz
-                {priceSats && (
-                  <span className="btn-price">for {priceSats.toLocaleString()} sats</span>
+                {/* Never `{priceSats && …}`: 0 is a real price here (free
+                    names) and JSX renders the number, which welded a "0" onto
+                    the end of the address. */}
+                {purchaseCtaSuffix(priceSats) && (
+                  <span className="btn-price">{purchaseCtaSuffix(priceSats)}</span>
                 )}
               </button>
             )}
