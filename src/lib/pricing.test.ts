@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatPrice, hasPrice, purchaseCtaSuffix } from './pricing'
+import { formatPrice, hasPrice, purchaseCtaSuffix, formatTier } from './pricing'
 
 describe('formatPrice', () => {
   it('calls zero Free, not "0 sats" and not a bare 0', () => {
@@ -46,5 +46,32 @@ describe('purchaseCtaSuffix', () => {
 
   it('adds nothing when the price is missing', () => {
     expect(purchaseCtaSuffix(undefined)).toBeNull()
+  })
+})
+
+describe('formatTier', () => {
+  it('turns the database id into something a person reads', () => {
+    // The badge showed "50k sats (ultra_premium)".
+    expect(formatTier('ultra_premium')).toBe('Ultra Premium')
+  })
+
+  it('handles single-word tiers', () => {
+    expect(formatTier('standard')).toBe('Standard')
+    expect(formatTier('short')).toBe('Short')
+  })
+
+  it('title-cases an unknown tier rather than hiding it', () => {
+    // A new pricing tier should be visible the day it ships, not invisible
+    // until someone notices the UI never rendered it.
+    expect(formatTier('mega_ultra_rare')).toBe('Mega Ultra Rare')
+  })
+
+  it('normalises shouty or mixed input', () => {
+    expect(formatTier('ULTRA_PREMIUM')).toBe('Ultra Premium')
+  })
+
+  it('survives separators and empty segments', () => {
+    expect(formatTier('ultra-premium')).toBe('Ultra Premium')
+    expect(formatTier('')).toBe('')
   })
 })

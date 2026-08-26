@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
+import { useNostrAuth } from '@cloistr/ui/auth'
 import { api } from '../lib/api'
 import { isValidUsername } from '../lib/validators'
 import type { AvailabilityResponse } from '../lib/types'
-import { formatPrice, hasPrice } from '../lib/pricing'
+import { formatPrice, hasPrice, formatTier } from '../lib/pricing'
 
 interface UsernameInputProps {
   onSelect?: (username: string, available: boolean, priceSats?: number) => void
@@ -10,6 +11,11 @@ interface UsernameInputProps {
 }
 
 export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
+  // The availability price depends on WHO is asking — the first claimed name on
+  // an account is free, later ones are not. Without a signer the check is
+  // anonymous and a signed-in user with an existing address is quoted "Free"
+  // for their second name, then charged at the purchase screen.
+  const { signer } = useNostrAuth()
   const [username, setUsername] = useState('')
   const [checking, setChecking] = useState(false)
   const [result, setResult] = useState<AvailabilityResponse | null>(null)
@@ -17,6 +23,9 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const checkAvailability = async (name: string) => {
+    // Best-effort: api.checkAvailability falls back to an anonymous check if
+    // this is null or signing fails, which is right for a visitor mid-signup.
+    api.setSigner(signer ?? null)
     if (!isValidUsername(name)) {
       setResult(null)
       setError(null)
@@ -113,7 +122,7 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
               <span className="price-badge">
                 {formatPrice(result.price_sats)}
                 {result.tier && (
-                  <span className="tier-label"> ({result.tier})</span>
+                  <span className="tier-label"> ({formatTier(result.tier)})</span>
                 )}
               </span>
             )}
