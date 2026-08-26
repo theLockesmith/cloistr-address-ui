@@ -36,9 +36,30 @@ export class AddressAPI {
     };
   }
 
-  // Public endpoint - check username availability
+  // Public endpoint, but AUTH-AWARE when we can be.
+  //
+  // The price of a 6+ character name depends on WHO is asking: the first claimed
+  // name on an account is free, later ones are not. The endpoint applies that
+  // rule only when it can identify the caller, and this call used to send no
+  // credentials at all — so a signed-in user with an existing address was shown
+  // "Free (standard)" for their second name and only met the real price at the
+  // quote, a screen later.
+  //
+  // Signing is best-effort on purpose: the endpoint is genuinely public and must
+  // keep working for a visitor who has not signed in yet, which is the whole
+  // signup funnel. A signing failure falls back to the anonymous price rather
+  // than blocking the check.
   async checkAvailability(username: string): Promise<AvailabilityResponse> {
-    const response = await fetch(`${this.baseUrl}/addresses/check/${encodeURIComponent(username)}`);
+    const url = `${this.baseUrl}/addresses/check/${encodeURIComponent(username)}`;
+    let headers: HeadersInit | undefined;
+    if (this.signer) {
+      try {
+        headers = await this.authHeaders(url, 'GET');
+      } catch {
+        // Not signed in, or the signer is unreachable. Anonymous is correct here.
+      }
+    }
+    const response = await fetch(url, headers ? { headers } : undefined);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }

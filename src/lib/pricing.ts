@@ -44,3 +44,22 @@ export function purchaseCtaSuffix(sats: number | undefined): string | null {
   if (!hasPrice(sats) || sats <= 0) return null
   return `for ${sats.toLocaleString()} sats`
 }
+
+/**
+ * Turns a tier id into something a person should read.
+ *
+ * The API returns the database identifier — `ultra_premium`, `standard` — and
+ * the badge rendered it raw, so users saw "50k sats (ultra_premium)". Ids are
+ * for code; a price badge is for people.
+ *
+ * Unknown tiers are title-cased rather than dropped: a tier we have not seen
+ * before is still better shown than hidden, and hiding it would make a new
+ * pricing tier invisible in the UI until someone noticed.
+ */
+export function formatTier(tier: string): string {
+  return tier
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ')
+}
