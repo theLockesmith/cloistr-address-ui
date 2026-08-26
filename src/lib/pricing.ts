@@ -27,3 +27,20 @@ export function formatPrice(sats: number): string {
 export function hasPrice(sats: number | undefined): sats is number {
   return typeof sats === 'number' && Number.isFinite(sats)
 }
+
+/**
+ * The trailing "for N sats" on the register button, or null when there is
+ * nothing to charge.
+ *
+ * Register.tsx wrote this inline as `{priceSats && <span>…</span>}`, and for a
+ * free name priceSats is 0 — so React printed the number itself, welding a "0"
+ * onto the end of the address: "Get lockesmith@cloistr.xyz0".
+ *
+ * A free name gets no suffix at all rather than "for 0 sats": the availability
+ * badge directly above it already says "Free (standard)", and repeating it on
+ * the button reads like a price of zero rather than no price.
+ */
+export function purchaseCtaSuffix(sats: number | undefined): string | null {
+  if (!hasPrice(sats) || sats <= 0) return null
+  return `for ${sats.toLocaleString()} sats`
+}
