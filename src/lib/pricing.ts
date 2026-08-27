@@ -63,3 +63,52 @@ export function formatTier(tier: string): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
     .join(' ')
 }
+
+/**
+ * The length range for a pricing tier, as a person reads it.
+ *
+ * `max_length` is null for the open-ended tier — standard is 6 and up — so this
+ * has to handle the missing bound explicitly. Interpolating it directly is how
+ * you ship "6-undefined characters".
+ */
+export function formatTierLength(minLength: number, maxLength: number | null): string {
+  if (maxLength === null || maxLength === undefined) return `${minLength}+ characters`
+  if (maxLength === minLength) {
+    return `${minLength} character${minLength === 1 ? '' : 's'}`
+  }
+  return `${minLength}-${maxLength} characters`
+}
+
+/**
+ * A tier's price for the pricing table.
+ *
+ * Full digits rather than formatPrice's "50k sats" shorthand: the table is the
+ * page where someone compares tiers, and the abbreviated form hides the gap
+ * between 1,000 and 10,000. Zero renders as "Free" — it is a real price, not a
+ * missing one.
+ */
+export function formatTierPrice(sats: number): string {
+  if (!Number.isFinite(sats) || sats < 0) return 'Unavailable'
+  if (sats === 0) return 'Free'
+  return `${sats.toLocaleString()} sats`
+}
+
+/**
+ * The sentence explaining that "Free" has an allowance attached.
+ *
+ * Returns null when no tier is actually free, so the note cannot outlive the
+ * pricing rule it describes: if the free tier is ever priced above zero, the
+ * line disappears instead of contradicting the table above it.
+ *
+ * This is the half that made the old hardcoded table wrong in BOTH directions —
+ * it advertised 1,000 sats for a first name that is free, while saying nothing
+ * about the second name that genuinely does cost 1,000.
+ */
+export function freeAllowanceNote(
+  tiers: { price_sats: number }[],
+  additionalSats: number,
+): string | null {
+  if (!tiers.some((t) => t.price_sats === 0)) return null
+  if (!Number.isFinite(additionalSats) || additionalSats <= 0) return null
+  return `Your first free-tier address is free — one per account. Each additional address is ${additionalSats.toLocaleString()} sats.`
+}

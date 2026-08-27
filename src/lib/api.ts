@@ -5,6 +5,7 @@ import type {
   AddressResponse,
   LightningConfig,
   CreditBalanceResponse,
+  PricingTiersResponse,
   CreditWithdrawResponse,
   Signer,
 } from './types';
@@ -60,6 +61,24 @@ export class AddressAPI {
       }
     }
     const response = await fetch(url, headers ? { headers } : undefined);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  // Public price list, read from the products/username_tiers catalog.
+  //
+  // The signup page used to hardcode this table in JSX and claimed a 6+ name
+  // costs 1,000 sats, when the catalog prices the FIRST one at 0 and charges
+  // 1,000 only for a second. A literal in a component cannot be kept in sync
+  // with a database by anything except someone remembering.
+  //
+  // Unauthenticated on purpose: these are list prices and the page renders
+  // before anyone has signed in. The caller-SPECIFIC price still comes from
+  // checkAvailability, which is auth-aware.
+  async getPricingTiers(): Promise<PricingTiersResponse> {
+    const response = await fetch(`${this.baseUrl}/pricing/tiers`);
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
     }

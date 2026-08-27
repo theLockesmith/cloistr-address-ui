@@ -43,6 +43,25 @@ export interface LightningConfig {
   enabled: boolean;
 }
 
+// One length-based price, straight from the username_tiers catalog.
+export interface PricingTier {
+  tier: string;
+  min_length: number;
+  // null means "and up" — the standard tier is 6+ with no upper bound. Declared
+  // nullable so a range renderer has to handle the open end explicitly rather
+  // than printing "6-undefined".
+  max_length: number | null;
+  // 0 is a REAL price: the first 6+ character name is free by design.
+  price_sats: number;
+}
+
+export interface PricingTiersResponse {
+  tiers: PricingTier[];
+  // What a SECOND or later free-tier name costs. Without it a "Free" row is
+  // only half the truth, which is the bug this endpoint exists to fix.
+  additional_address_sats: number;
+}
+
 export interface CreditBalanceResponse {
   balance_sats: number;
 }
