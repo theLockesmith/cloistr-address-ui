@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNostrAuth } from '@cloistr/ui/auth'
 import { LoginModal } from '@cloistr/ui/components'
 import { UsernameInput } from '../components'
-import { purchaseCtaSuffix } from '../lib/pricing'
+import {
+  purchaseCtaSuffix,
+  formatTier,
+  formatTierLength,
+  formatTierPrice,
+  freeAllowanceNote,
+} from '../lib/pricing'
+import { api } from '../lib/api'
+import type { PricingTiersResponse } from '../lib/types'
 
 export function Register() {
   const { authState } = useNostrAuth()
@@ -12,6 +20,29 @@ export function Register() {
   const [isAvailable, setIsAvailable] = useState(false)
   const [priceSats, setPriceSats] = useState<number | undefined>()
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  // undefined = still loading, null = the price list could not be read.
+  // Distinguished so a failed fetch renders NOTHING rather than an empty or
+  // half-populated table, which reads as a complete price list.
+  const [pricing, setPricing] = useState<PricingTiersResponse | null | undefined>()
+
+  useEffect(() => {
+    let cancelled = false
+    api
+      .getPricingTiers()
+      .then((data) => {
+        if (!cancelled) setPricing(data)
+      })
+      .catch(() => {
+        // No fallback literals here on purpose. Hardcoded prices are the bug
+        // this replaced: the table claimed 1,000 sats for a name the catalog
+        // gives away free. Showing nothing is honest; showing a stale guess is
+        // how a user meets a different number at checkout.
+        if (!cancelled) setPricing(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleUsernameSelect = (username: string, available: boolean, price?: number) => {
     setSelectedUsername(username)
@@ -84,33 +115,39 @@ export function Register() {
           </div>
         </section>
 
-        <section className="pricing">
-          <h2>Simple Pricing</h2>
-          <div className="pricing-tiers">
-            <div className="tier">
-              <span className="tier-name">Ultra Premium</span>
-              <span className="tier-length">1-2 characters</span>
-              <span className="tier-price">50,000 sats</span>
+        {/* Rendered from the catalog, never from literals.
+            This table was four blocks of hardcoded JSX asserting that a 6+
+            character name costs 1,000 sats. Migration 006 set
+            username_tiers.standard to 0 -- the first 6+ name is FREE -- and
+            1,000 sats is address_standard_additional, i.e. a SECOND name. So
+            the signup page overcharged every new visitor in its own marketing
+            copy, and nothing would ever have corrected it: a literal cannot
+            track a products table.
+            The whole section is withheld while loading or on error rather than
+            falling back to defaults, because a wrong price shown confidently is
+            worse than no price at all. */}
+        {pricing && pricing.tiers.length > 0 && (
+          <section className="pricing">
+            <h2>Simple Pricing</h2>
+            <div className="pricing-tiers">
+              {pricing.tiers.map((tier) => (
+                <div key={tier.tier} className="tier">
+                  <span className="tier-name">{formatTier(tier.tier)}</span>
+                  <span className="tier-length">
+                    {formatTierLength(tier.min_length, tier.max_length)}
+                  </span>
+                  <span className="tier-price">{formatTierPrice(tier.price_sats)}</span>
+                </div>
+              ))}
             </div>
-            <div className="tier">
-              <span className="tier-name">Premium</span>
-              <span className="tier-length">3 characters</span>
-              <span className="tier-price">10,000 sats</span>
-            </div>
-            <div className="tier">
-              <span className="tier-name">Short</span>
-              <span className="tier-length">4-5 characters</span>
-              <span className="tier-price">5,000 sats</span>
-            </div>
-            <div className="tier popular">
-              <span className="tier-badge">Most Popular</span>
-              <span className="tier-name">Standard</span>
-              <span className="tier-length">6+ characters</span>
-              <span className="tier-price">1,000 sats</span>
-            </div>
-          </div>
-          <p className="pricing-note">One-time payment. Own your address forever.</p>
-        </section>
+            {freeAllowanceNote(pricing.tiers, pricing.additional_address_sats) && (
+              <p className="pricing-note">
+                {freeAllowanceNote(pricing.tiers, pricing.additional_address_sats)}
+              </p>
+            )}
+            <p className="pricing-note">One-time payment. Own your address forever.</p>
+          </section>
+        )}
 
       <LoginModal
         isOpen={showLoginPrompt}

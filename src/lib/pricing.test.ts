@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatPrice, hasPrice, purchaseCtaSuffix, formatTier } from './pricing'
+import { formatPrice, hasPrice, purchaseCtaSuffix, formatTier, formatTierLength, formatTierPrice, freeAllowanceNote } from './pricing'
 
 describe('formatPrice', () => {
   it('calls zero Free, not "0 sats" and not a bare 0', () => {
@@ -73,5 +73,72 @@ describe('formatTier', () => {
   it('survives separators and empty segments', () => {
     expect(formatTier('ultra-premium')).toBe('Ultra Premium')
     expect(formatTier('')).toBe('')
+  })
+})
+
+// formatTierLength
+// ---------------------------------------------------------------------------
+// max_length is null for the open-ended tier. Interpolating it directly is how
+// "6-undefined characters" reaches the signup page.
+
+describe('formatTierLength', () => {
+  it('renders an open-ended tier with a plus', () => {
+    expect(formatTierLength(6, null)).toBe('6+ characters')
+  })
+
+  it('renders a single-length tier in the singular', () => {
+    expect(formatTierLength(3, 3)).toBe('3 characters')
+    expect(formatTierLength(1, 1)).toBe('1 character')
+  })
+
+  it('renders a range', () => {
+    expect(formatTierLength(4, 5)).toBe('4-5 characters')
+    expect(formatTierLength(1, 2)).toBe('1-2 characters')
+  })
+})
+
+// formatTierPrice
+// ---------------------------------------------------------------------------
+
+describe('formatTierPrice', () => {
+  // THE BUG, in one assertion. The hardcoded table said "1,000 sats" for a 6+
+  // name; the catalog prices the first one at 0.
+  it('renders zero as Free, not "0 sats"', () => {
+    expect(formatTierPrice(0)).toBe('Free')
+  })
+
+  it('renders full digits rather than formatPrice shorthand', () => {
+    // "50k sats" hides the gap between 1,000 and 10,000 on the one page where
+    // someone is comparing tiers.
+    expect(formatTierPrice(50000)).toBe('50,000 sats')
+    expect(formatTierPrice(1000)).toBe('1,000 sats')
+  })
+
+  it('never renders a negative or non-finite price as a number', () => {
+    expect(formatTierPrice(-1)).toBe('Unavailable')
+    expect(formatTierPrice(NaN)).toBe('Unavailable')
+  })
+})
+
+// freeAllowanceNote
+// ---------------------------------------------------------------------------
+
+describe('freeAllowanceNote', () => {
+  it('explains the allowance when a tier is genuinely free', () => {
+    const note = freeAllowanceNote([{ price_sats: 0 }, { price_sats: 5000 }], 1000)
+    expect(note).toContain('1,000 sats')
+    expect(note).toContain('first')
+  })
+
+  // The note must not outlive the rule it describes. If the free tier is ever
+  // priced above zero, a stale sentence saying "your first is free" contradicts
+  // the table directly above it.
+  it('returns null when no tier is free', () => {
+    expect(freeAllowanceNote([{ price_sats: 1000 }, { price_sats: 5000 }], 1000)).toBeNull()
+  })
+
+  it('returns null when there is no additional price to quote', () => {
+    expect(freeAllowanceNote([{ price_sats: 0 }], 0)).toBeNull()
+    expect(freeAllowanceNote([{ price_sats: 0 }], NaN)).toBeNull()
   })
 })
