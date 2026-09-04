@@ -38,7 +38,7 @@ update-dependency:
         git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" HEAD:${CI_COMMIT_REF_NAME}
       fi
 
-# Test and type-check (skip when triggered from upstream)
+# Test (vitest) and type-check/build (skip when triggered from upstream)
 test:
   stage: test
   image: node:${NODE_VERSION}-alpine
@@ -49,6 +49,7 @@ test:
   before_script:
     - npm ci
   script:
+    - npm run test
     - npm run build
   cache:
     key: ${CI_COMMIT_REF_SLUG}
