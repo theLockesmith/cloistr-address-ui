@@ -11,8 +11,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@cloistr/auth": "^0.6.0",
-    "@cloistr/collab-common": "^0.2.15",
+    "@cloistr/auth": "^0.7.0",
+    "@cloistr/collab-common": "^0.2.16",
     "@cloistr/ui": "^0.42.0",
     "@types/qrcode": "^1.5.6",
     "nostr-tools": "^2.25.2",
