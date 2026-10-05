@@ -11,6 +11,7 @@ import {
   freeAllowanceNote,
 } from '../lib/pricing'
 import { api } from '../lib/api'
+import { serviceConfig } from '../lib/config'
 import type { PricingTiersResponse } from '../lib/types'
 
 export function Register() {
@@ -152,7 +153,7 @@ export function Register() {
       <LoginModal
         isOpen={showLoginPrompt}
         onClose={() => setShowLoginPrompt(false)}
-        signerUrl="https://signer.cloistr.xyz"
+        signerUrl={serviceConfig.signerUrl}
       />
     </div>
   )

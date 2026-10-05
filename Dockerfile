@@ -21,8 +21,19 @@ FROM nginxinc/nginx-unprivileged:alpine
 # Copy built assets
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# nginx config as a template: the base image substitutes CLOISTR_* into it
+# before nginx starts, which is how /config.js carries runtime service URLs.
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+# Production values as defaults, so an unconfigured container is production.
+# The filter keeps envsubst away from nginx's own $variables.
+ENV CLOISTR_RELAY_URL=wss://relay.cloistr.xyz \
+    CLOISTR_SIGNER_URL=https://signer.cloistr.xyz \
+    CLOISTR_BLOSSOM_URL=https://files.cloistr.xyz \
+    CLOISTR_DISCOVERY_URL=https://discover.cloistr.xyz \
+    CLOISTR_APP_URL=https://me.cloistr.xyz \
+    CLOISTR_ENVIRONMENT=production \
+    NGINX_ENVSUBST_FILTER=^CLOISTR_
 
 EXPOSE 8080
 

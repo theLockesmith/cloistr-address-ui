@@ -1,8 +1,9 @@
 import { useState } from 'react'
+import { cloistrNip05Host } from '../lib/config'
 
 // Known NIP-05 providers to search
 const NIP05_PROVIDERS = [
-  { domain: 'cloistr.xyz', name: 'Cloistr' },
+  { domain: cloistrNip05Host(), name: 'Cloistr' },
   { domain: 'primal.net', name: 'Primal' },
   { domain: 'nostr.band', name: 'Nostr.band' },
   { domain: 'snort.social', name: 'Snort' },

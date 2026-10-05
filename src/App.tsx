@@ -2,12 +2,13 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ThemeProvider, ToastProvider, SharedAuthProvider, Header, Footer } from '@cloistr/ui/components'
 import '@cloistr/ui/styles'
 import { Welcome, Register, Lookup, Purchase, Success, Dashboard, NotFound } from './pages'
+import { serviceConfig } from './lib/config'
 import './index.css'
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-layout">
-      <Header activeServiceId="identity" />
+      <Header activeServiceId="identity" signerUrl={serviceConfig.signerUrl} />
       <main className="main-content">
         {children}
       </main>
@@ -20,7 +21,7 @@ function App() {
   return (
     <ThemeProvider>
       <ToastProvider>
-        <SharedAuthProvider>
+        <SharedAuthProvider signerUrl={serviceConfig.signerUrl}>
           <BrowserRouter>
             <Layout>
               <Routes>
