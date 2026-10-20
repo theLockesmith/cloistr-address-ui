@@ -123,7 +123,7 @@ body {
 }
 
 .footer a {
-  color: var(--color-primary);
+  color: var(--cloistr-primary-text);
   text-decoration: none;
 }
 
@@ -463,7 +463,7 @@ body {
 }
 
 .welcome-back a {
-  color: var(--color-primary);
+  color: var(--cloistr-primary-text);
   text-decoration: none;
   font-weight: 500;
 }
@@ -582,7 +582,7 @@ body {
 .tier-price {
   font-size: 18px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--cloistr-primary-text);
   margin-top: 8px;
 }
 
@@ -755,7 +755,7 @@ body {
 .address-display {
   font-size: 24px;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--cloistr-primary-text);
   margin-bottom: 32px;
 }
 
@@ -1114,7 +1114,7 @@ body {
 
 .not-found-content h1 {
   font-size: 80px;
-  color: var(--color-primary);
+  color: var(--cloistr-primary-text);
   margin-bottom: 16px;
 }
 
@@ -1181,7 +1181,7 @@ body {
 .info-card h3 {
   font-size: 16px;
   margin-bottom: 12px;
-  color: var(--color-primary);
+  color: var(--cloistr-primary-text);
 }
 
 .info-card p {
@@ -1304,7 +1304,7 @@ body {
 }
 
 .no-results-hint a {
-  color: var(--color-primary);
+  color: var(--cloistr-primary-text);
   text-decoration: none;
 }
 
@@ -1327,7 +1327,7 @@ body {
 .profile-address {
   font-size: 20px;
   margin-bottom: 20px;
-  color: var(--color-primary);
+  color: var(--cloistr-primary-text);
 }
 
 .profile-field {
