@@ -19,6 +19,21 @@ export function isValidUsername(name: string): boolean {
 }
 
 /**
+ * Normalizes username-field input before it is validated, checked, or shown
+ * back to the user. Case-folds only.
+ *
+ * It used to also strip every character outside [a-z0-9_-] as the user
+ * typed, so a paste of "bad name!" silently became "badname" before
+ * isValidUsername ever saw it -- a different, often AVAILABLE string -- and
+ * the field reported "Available!" for an input that was never actually
+ * valid (ME-7). Keeping the disallowed characters in place means
+ * isValidUsername(normalizeUsernameInput(raw)) correctly rejects it.
+ */
+export function normalizeUsernameInput(value: string): string {
+  return value.toLowerCase()
+}
+
+/**
  * Lightning Address format: local@domain.tld
  * Accepts letters, digits, dots, underscores, and hyphens in the local part.
  */

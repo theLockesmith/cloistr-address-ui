@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNostrAuth } from '@cloistr/ui/auth'
 import { api } from '../lib/api'
-import { isValidUsername } from '../lib/validators'
+import { isValidUsername, normalizeUsernameInput } from '../lib/validators'
 import type { AvailabilityResponse } from '../lib/types'
 import { formatPrice, hasPrice, formatTier } from '../lib/pricing'
 
@@ -28,7 +28,7 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
     api.setSigner(signer ?? null)
     if (!isValidUsername(name)) {
       setResult(null)
-      setError(null)
+      setError('Invalid username. Use 2-50 lowercase letters, numbers, underscores, or hyphens.')
       return
     }
 
@@ -48,7 +48,12 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
   }
 
   const handleInput = (value: string) => {
-    const normalized = value.toLowerCase().replace(/[^a-z0-9_-]/g, '')
+    // ME-7: this used to also strip every character outside [a-z0-9_-] here,
+    // so typing "bad name!" silently checked (and often reported available
+    // for) "badname" instead. normalizeUsernameInput only folds case, so the
+    // invalid characters survive into checkAvailability's isValidUsername
+    // check below and get reported as invalid, not silently dropped.
+    const normalized = normalizeUsernameInput(value)
     setUsername(normalized)
 
     // Clear previous timer
@@ -130,7 +135,10 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
         ) : (
           <div className="input-status taken">
             <span className="status-icon">&#10007;</span>
-            <span className="status-text">Already taken</span>
+            {/* ME-7: show the backend's actual reason (reserved vs. taken)
+                instead of a hardcoded "Already taken" for every unavailable
+                name. */}
+            <span className="status-text">{result.reason ?? 'Already taken'}</span>
           </div>
         )
       )}

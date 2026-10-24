@@ -2,3 +2,4 @@ export { UsernameInput } from './UsernameInput';
 export { PaymentQR } from './PaymentQR';
 export { LightningConfig } from './LightningConfig';
 export { CreditBalance } from './CreditBalance';
+export { RelayHints } from './RelayHints';
