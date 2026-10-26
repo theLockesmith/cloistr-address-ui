@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNostrAuth } from '@cloistr/ui/auth'
 import { LoginPrompt } from '@cloistr/ui/components'
 import { api } from '../lib/api'
-import { hasRelays } from '../lib/validators'
-import { LightningConfig, CreditBalance } from '../components'
+import { LightningConfig, CreditBalance, RelayHints } from '../components'
 import type { AddressResponse, CreditBalanceResponse } from '../lib/types'
 
 export function Dashboard() {
@@ -136,26 +135,13 @@ export function Dashboard() {
                 )}
 
                 {/*
-                  `relays` is optional on the address payload -- an address with
-                  no relay hints comes back without the field at all, not as an
-                  empty array. Calling .map() on it unguarded threw
-                  "TypeError: can't access property 'map', i.relays is undefined"
-                  during render, which React escalates to unmounting the whole
-                  tree: the entire dashboard went blank, not just this section.
-                  hasRelays() from validators.ts guards this; Lookup.tsx mirrors
-                  the same check inline.
+                  RelayHints always renders the section (ME-14: it used to be
+                  omitted entirely for an address with none, which read as a
+                  bug rather than "you have none yet"). It applies the same
+                  hasRelays() guard from validators.ts that this used to
+                  inline -- Lookup.tsx mirrors the same check separately.
                 */}
-                {hasRelays(address.relays) && (
-                  <section className="relays-section">
-                    <h3>Relay Hints</h3>
-                    <p>These relays are included in your NIP-05 response:</p>
-                    <ul className="relay-list">
-                      {address.relays.map((relay, index) => (
-                        <li key={index} className="relay-item">{relay}</li>
-                      ))}
-                    </ul>
-                  </section>
-                )}
+                <RelayHints relays={address.relays} />
               </div>
             ) : (
               <div className="no-address">

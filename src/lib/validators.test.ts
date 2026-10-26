@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { isValidUsername, isValidLightningAddress, hasRelays } from './validators'
+import { isValidUsername, isValidLightningAddress, hasRelays, normalizeUsernameInput, hasDisallowedUsernameChars } from './validators'
 
 // ---------------------------------------------------------------------------
 // isValidUsername
@@ -135,5 +135,46 @@ describe('hasRelays', () => {
     // This is the crash scenario: AddressResponse.relays is optional.
     // Calling .map() on undefined throws; hasRelays() prevents that.
     expect(hasRelays(undefined)).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// normalizeUsernameInput (ME-7)
+// ---------------------------------------------------------------------------
+
+describe('normalizeUsernameInput', () => {
+  it('lowercases input', () => {
+    expect(normalizeUsernameInput('ADMIN')).toBe('admin')
+  })
+
+  it('does NOT strip disallowed characters', () => {
+    // The old UsernameInput behaviour stripped everything outside
+    // [a-z0-9_-] as the user typed, so "bad name!" silently became
+    // "badname" and was then checked (and often reported available) as a
+    // completely different string. The field must see what was actually
+    // typed so isValidUsername can reject it for the right reason.
+    expect(normalizeUsernameInput('bad name!')).toBe('bad name!')
+  })
+
+  it('round-trips a valid username unchanged (besides case)', () => {
+    expect(normalizeUsernameInput('Cold-Forge_42')).toBe('cold-forge_42')
+  })
+
+  it('composes with isValidUsername to reject invalid characters that case-folding alone would not catch', () => {
+    const normalized = normalizeUsernameInput('Bad Name!')
+    expect(isValidUsername(normalized)).toBe(false)
+  })
+})
+
+describe('hasDisallowedUsernameChars', () => {
+  it('flags a disallowed character at any length', () => {
+    expect(hasDisallowedUsernameChars('!')).toBe(true)
+    expect(hasDisallowedUsernameChars('bob!')).toBe(true)
+    expect(hasDisallowedUsernameChars('bad name')).toBe(true)
+  })
+  it('allows lowercase letters, digits, underscores and hyphens, and empty', () => {
+    expect(hasDisallowedUsernameChars('')).toBe(false)
+    expect(hasDisallowedUsernameChars('b')).toBe(false)
+    expect(hasDisallowedUsernameChars('bob_smith-2')).toBe(false)
   })
 })

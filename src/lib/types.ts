@@ -4,6 +4,12 @@ export interface AvailabilityResponse {
   available: boolean;
   price_sats?: number;
   tier?: string;
+  // Present when available is false (taken/reserved) or the name failed
+  // format validation. ME-7: the backend always sent this; UsernameInput
+  // ignored it and showed a generic "Already taken" for every unavailable
+  // name, so a reserved word (admin, root, support, ...) looked identical to
+  // one someone else had actually claimed.
+  reason?: string;
 }
 
 export interface PurchaseQuoteResponse {
