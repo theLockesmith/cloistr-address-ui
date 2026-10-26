@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { isValidUsername, isValidLightningAddress, hasRelays, normalizeUsernameInput } from './validators'
+import { isValidUsername, isValidLightningAddress, hasRelays, normalizeUsernameInput, hasDisallowedUsernameChars } from './validators'
 
 // ---------------------------------------------------------------------------
 // isValidUsername
@@ -163,5 +163,18 @@ describe('normalizeUsernameInput', () => {
   it('composes with isValidUsername to reject invalid characters that case-folding alone would not catch', () => {
     const normalized = normalizeUsernameInput('Bad Name!')
     expect(isValidUsername(normalized)).toBe(false)
+  })
+})
+
+describe('hasDisallowedUsernameChars', () => {
+  it('flags a disallowed character at any length', () => {
+    expect(hasDisallowedUsernameChars('!')).toBe(true)
+    expect(hasDisallowedUsernameChars('bob!')).toBe(true)
+    expect(hasDisallowedUsernameChars('bad name')).toBe(true)
+  })
+  it('allows lowercase letters, digits, underscores and hyphens, and empty', () => {
+    expect(hasDisallowedUsernameChars('')).toBe(false)
+    expect(hasDisallowedUsernameChars('b')).toBe(false)
+    expect(hasDisallowedUsernameChars('bob_smith-2')).toBe(false)
   })
 })

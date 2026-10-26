@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNostrAuth } from '@cloistr/ui/auth'
 import { api } from '../lib/api'
-import { isValidUsername, normalizeUsernameInput } from '../lib/validators'
+import { hasDisallowedUsernameChars, isValidUsername, normalizeUsernameInput } from '../lib/validators'
 import type { AvailabilityResponse } from '../lib/types'
 import { formatPrice, hasPrice, formatTier } from '../lib/pricing'
+
+const INVALID_USERNAME = 'Invalid username. Use 2-50 lowercase letters, numbers, underscores, or hyphens.'
 
 interface UsernameInputProps {
   onSelect?: (username: string, available: boolean, priceSats?: number) => void
@@ -21,6 +23,9 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
   const [result, setResult] = useState<AvailabilityResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The value currently in the field, so a slow answer for an older value
+  // cannot report that older name as selected.
+  const latest = useRef('')
 
   const checkAvailability = async (name: string) => {
     // Best-effort: api.checkAvailability falls back to an anonymous check if
@@ -28,7 +33,8 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
     api.setSigner(signer ?? null)
     if (!isValidUsername(name)) {
       setResult(null)
-      setError('Invalid username. Use 2-50 lowercase letters, numbers, underscores, or hyphens.')
+      setError(INVALID_USERNAME)
+      onSelect?.(name, false)
       return
     }
 
@@ -37,13 +43,15 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
 
     try {
       const response = await api.checkAvailability(name.toLowerCase())
+      if (latest.current !== name) return
       setResult(response)
       onSelect?.(name.toLowerCase(), response.available, response.price_sats)
     } catch (err) {
+      if (latest.current !== name) return
       setError('Failed to check availability')
       setResult(null)
     } finally {
-      setChecking(false)
+      if (latest.current === name) setChecking(false)
     }
   }
 
@@ -61,9 +69,19 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
       clearTimeout(debounceTimer.current)
     }
 
-    // Reset state
+    // Reset state, and withdraw the last name reported to the parent: Register
+    // offers to buy whatever onSelect last called available, so until this
+    // value has its own answer, nothing is available.
+    latest.current = normalized
     setResult(null)
     setError(null)
+    setChecking(false)
+    onSelect?.(normalized, false)
+
+    if (hasDisallowedUsernameChars(normalized)) {
+      setError(INVALID_USERNAME)
+      return
+    }
 
     // Debounce the API call
     if (normalized.length >= 2) {
@@ -104,7 +122,7 @@ export function UsernameInput({ onSelect, disabled }: UsernameInputProps) {
         <span className="domain-suffix">@cloistr.xyz</span>
       </div>
 
-      {username.length > 0 && username.length < 2 && (
+      {!error && username.length > 0 && username.length < 2 && (
         <p className="input-hint">Username must be at least 2 characters</p>
       )}
 

@@ -19,6 +19,15 @@ export function isValidUsername(name: string): boolean {
 }
 
 /**
+ * True when the value contains a character no username may contain, whatever
+ * its length. Lets the field say "not allowed" for a lone "!" instead of only
+ * "at least 2 characters".
+ */
+export function hasDisallowedUsernameChars(value: string): boolean {
+  return /[^a-z0-9_-]/.test(value)
+}
+
+/**
  * Normalizes username-field input before it is validated, checked, or shown
  * back to the user. Case-folds only.
  *
