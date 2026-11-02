@@ -47,6 +47,12 @@ export interface LightningConfig {
   mode: 'disabled' | 'proxy' | 'nwc';
   proxy_address?: string;
   enabled: boolean;
+  // Set by the server when a wallet is connected. The connection string itself
+  // is never returned: it carries the wallet secret and is stored encrypted.
+  nwc_configured?: boolean;
+  nwc_error_count?: number;
+  // Sent only when connecting a wallet.
+  nwc_connection_uri?: string;
 }
 
 // One length-based price, straight from the username_tiers catalog.

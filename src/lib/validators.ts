@@ -51,6 +51,19 @@ export function isValidLightningAddress(addr: string): boolean {
 }
 
 /**
+ * Nostr Wallet Connect (NIP-47) connection string, in the shape cloistr-me's
+ * nwc.ParseConnectionURI accepts: a 64-hex wallet pubkey, a relay, and a
+ * 64-hex secret. Checked here so a pasted invoice or address fails before the
+ * secret leaves the browser.
+ */
+export function isValidNWCConnectionURI(uri: string): boolean {
+  const m = /^nostr\+walletconnect:\/\/([0-9a-fA-F]{64})\?(.+)$/.exec(uri)
+  if (!m) return false
+  const params = new URLSearchParams(m[2])
+  return !!params.get('relay') && /^[0-9a-fA-F]{64}$/.test(params.get('secret') || '')
+}
+
+/**
  * Returns true when a relays array is present AND non-empty.
  * The guard is the canonical one used in Dashboard and Lookup: the field is
  * optional on AddressResponse, so calling .map() without this check crashes.
