@@ -103,3 +103,23 @@ export interface SignedEvent extends UnsignedEvent {
   pubkey: string;
   sig: string;
 }
+
+// A storage top-up on sale, from GET /api/v1/products/storage.
+export interface StorageTopup {
+  id: string;
+  display_name: string;
+  description: string;
+  price_sats: number;
+  storage_bytes: number;
+}
+
+// POST /api/v1/purchase/product. status is "invoiced", or "granted" when the
+// product was free and applied at once.
+export interface ProductInvoiceResponse {
+  invoice_id: string;
+  product_id: string;
+  display_name: string;
+  price_sats: number;
+  checkout_url?: string;
+  status: string;
+}

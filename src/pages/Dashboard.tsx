@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNostrAuth } from '@cloistr/ui/auth'
 import { LoginPrompt } from '@cloistr/ui/components'
 import { api } from '../lib/api'
-import { LightningConfig, CreditBalance, RelayHints } from '../components'
+import { LightningConfig, CreditBalance, RelayHints, StorageTopups } from '../components'
 import type { AddressResponse, CreditBalanceResponse } from '../lib/types'
 
 export function Dashboard() {
@@ -53,6 +53,17 @@ export function Dashboard() {
     // Reload credits after withdrawal
     const creditsRes = await api.getCredits()
     setCredits(creditsRes)
+  }
+
+  const buyProduct = async (productId: string) => {
+    if (!signer) throw new Error('Not signed in')
+    api.setSigner(signer)
+    return api.purchaseProduct(productId)
+  }
+
+  const checkPurchase = async (invoiceId: string) => {
+    if (signer) api.setSigner(signer)
+    return api.getPaymentStatus(invoiceId)
   }
 
   useEffect(() => {
@@ -142,6 +153,14 @@ export function Dashboard() {
                   inline -- Lookup.tsx mirrors the same check separately.
                 */}
                 <RelayHints relays={address.relays} />
+
+                <section className="storage-section">
+                  <StorageTopups
+                    loadProducts={() => api.getStorageTopups()}
+                    buy={buyProduct}
+                    checkStatus={checkPurchase}
+                  />
+                </section>
               </div>
             ) : (
               <div className="no-address">

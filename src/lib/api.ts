@@ -8,6 +8,8 @@ import type {
   PricingTiersResponse,
   CreditWithdrawResponse,
   Signer,
+  StorageTopup,
+  ProductInvoiceResponse,
 } from './types';
 import { createNip98Header } from './nip98';
 
@@ -165,6 +167,32 @@ export class AddressAPI {
     const response = await fetch(url, { headers });
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  // Public - storage top-ups on sale, from the catalog
+  async getStorageTopups(): Promise<StorageTopup[]> {
+    const response = await fetch(`${this.baseUrl}/products/storage`);
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+    const body = await response.json();
+    return body.products;
+  }
+
+  // Authenticated - invoice a catalog product for the caller
+  async purchaseProduct(productId: string): Promise<ProductInvoiceResponse> {
+    const url = `${this.baseUrl}/purchase/product`;
+    const headers = await this.authHeaders(url, 'POST');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ product_id: productId }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `API error: ${response.status}`);
     }
     return response.json();
   }
