@@ -169,6 +169,25 @@ export class AddressAPI {
     return response.json();
   }
 
+  // Authenticated - transfer the caller's primary address to another pubkey.
+  // 425 means the 7-day cooldown is running; the server says until when.
+  async transferAddress(newPubkey: string): Promise<void> {
+    const url = `${this.baseUrl}/addresses/transfer`;
+    const headers = await this.authHeaders(url, 'POST');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ new_pubkey: newPubkey }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      if (response.status === 425 && error.cooldown_ends) {
+        throw new Error(`You can transfer this address again after ${String(error.cooldown_ends).slice(0, 10)}.`);
+      }
+      throw new Error(error.error || `API error: ${response.status}`);
+    }
+  }
+
   // Authenticated - withdraw credits
   async withdrawCredits(amountSats: number, lightningAddress: string): Promise<CreditWithdrawResponse> {
     const url = `${this.baseUrl}/credits/withdraw`;
