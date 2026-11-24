@@ -4,3 +4,4 @@ export { LightningConfig } from './LightningConfig';
 export { CreditBalance } from './CreditBalance';
 export { RelayHints } from './RelayHints';
 export { AddressTransfer } from './AddressTransfer';
+export { StorageTopups } from './StorageTopups';
