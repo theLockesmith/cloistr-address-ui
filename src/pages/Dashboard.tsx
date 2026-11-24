@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNostrAuth } from '@cloistr/ui/auth'
 import { LoginPrompt } from '@cloistr/ui/components'
 import { api } from '../lib/api'
-import { LightningConfig, CreditBalance, RelayHints, StorageTopups } from '../components'
+import { LightningConfig, CreditBalance, RelayHints, AddressTransfer, StorageTopups } from '../components'
 import type { AddressResponse, CreditBalanceResponse } from '../lib/types'
 
 export function Dashboard() {
@@ -53,6 +53,15 @@ export function Dashboard() {
     // Reload credits after withdrawal
     const creditsRes = await api.getCredits()
     setCredits(creditsRes)
+  }
+
+  // After a transfer the signed-in key no longer owns this address, so reload
+  // rather than patching state: the server decides what is left.
+  const handleTransfer = async (newPubkey: string) => {
+    if (!signer) return
+    api.setSigner(signer)
+    await api.transferAddress(newPubkey)
+    await loadData()
   }
 
   const buyProduct = async (productId: string) => {
@@ -153,6 +162,14 @@ export function Dashboard() {
                   inline -- Lookup.tsx mirrors the same check separately.
                 */}
                 <RelayHints relays={address.relays} />
+
+                <section className="transfer-section">
+                  <AddressTransfer
+                    address={`${address.username}@${address.domain}`}
+                    currentPubkey={address.pubkey}
+                    onTransfer={handleTransfer}
+                  />
+                </section>
 
                 <section className="storage-section">
                   <StorageTopups
